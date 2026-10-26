@@ -1,0 +1,26 @@
+# English Development App — Cursor Rules
+
+## General
+- Always use TypeScript.
+- Write clean, modular, and well-commented code.
+
+## Backend (FastAPI)
+- Use async/await for all I/O-bound operations.
+- Use SQLAlchemy ORM for database access.
+- Use Pydantic models for request/response validation.
+- Follow REST API best practices (proper HTTP methods, status codes, and resource naming).
+
+## Mobile App (React Native)
+- Use Expo and Expo Router.
+- Prefer functional components.
+- Use Axios for all API calls.
+
+## Admin Panel (Next.js)
+- Use the App Router.
+- Use Tailwind CSS for styling.
+- Use shadcn/ui for all UI components.
+
+## Environment & Secrets
+- Always use `.env` files for secrets (e.g. OpenAI API keys, Database URLs).
+- Never hardcode secrets in source code.
+- Remind the developer to keep `.env` out of version control and to provide `.env.example` where helpful.
