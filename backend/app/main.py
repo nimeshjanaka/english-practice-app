@@ -2,11 +2,13 @@
 FastAPI application entrypoint for the Spoken English backend.
 """
 
+from pathlib import Path
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 
-# Routers (wired here; route modules will be filled in next)
-from app.routers import auth, exercises, lessons, payments, units
+from app.routers import ai_chat, auth, content, payments, users
 
 app = FastAPI(
     title="English Development App API",
@@ -26,11 +28,16 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Serve generated TTS audio files
+STATIC_DIR = Path(__file__).resolve().parent.parent / "static"
+(STATIC_DIR / "audio").mkdir(parents=True, exist_ok=True)
+app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
+
 # Mount API routers
 app.include_router(auth.router, prefix="/api/auth", tags=["Auth"])
-app.include_router(units.router, prefix="/api/units", tags=["Units"])
-app.include_router(lessons.router, prefix="/api/lessons", tags=["Lessons"])
-app.include_router(exercises.router, prefix="/api/exercises", tags=["Exercises"])
+app.include_router(users.router, prefix="/api/users", tags=["Users"])
+app.include_router(content.router, prefix="/api/content", tags=["Content"])
+app.include_router(ai_chat.router, prefix="/api/ai", tags=["AI Chat"])
 app.include_router(payments.router, prefix="/api/payments", tags=["Payments"])
 
 

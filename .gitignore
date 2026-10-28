@@ -10,6 +10,10 @@
 *.pyc
 .Python
 
+# Generated TTS audio (keep folder via .gitkeep)
+backend/static/audio/*
+!backend/static/audio/.gitkeep
+
 # Node / Next.js
 **/node_modules/
 **/.next/

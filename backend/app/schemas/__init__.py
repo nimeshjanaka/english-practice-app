@@ -1,9 +1,10 @@
 """Pydantic request/response schemas."""
 
-from app.schemas.exercise import ExerciseResponse
-from app.schemas.lesson import LessonResponse
+from app.schemas.ai_chat import ChatResponse
+from app.schemas.exercise import ExerciseCreate, ExerciseResponse, ExerciseUpdate
+from app.schemas.lesson import LessonCreate, LessonResponse, LessonUpdate
 from app.schemas.payment import PaymentResponse
-from app.schemas.unit import UnitResponse
+from app.schemas.unit import UnitCreate, UnitResponse, UnitUpdate
 from app.schemas.user import Token, UserCreate, UserLogin, UserResponse
 
 __all__ = [
@@ -11,8 +12,15 @@ __all__ = [
     "UserLogin",
     "UserResponse",
     "Token",
+    "UnitCreate",
+    "UnitUpdate",
     "UnitResponse",
+    "LessonCreate",
+    "LessonUpdate",
     "LessonResponse",
+    "ExerciseCreate",
+    "ExerciseUpdate",
     "ExerciseResponse",
     "PaymentResponse",
+    "ChatResponse",
 ]

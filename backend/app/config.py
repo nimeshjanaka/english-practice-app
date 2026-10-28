@@ -22,6 +22,7 @@ class Settings(BaseSettings):
     # JWT auth
     SECRET_KEY: str = "change-me-to-a-long-random-string"
     ALGORITHM: str = "HS256"
+    ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24  # 24 hours
 
     model_config = SettingsConfigDict(
         env_file=".env",
