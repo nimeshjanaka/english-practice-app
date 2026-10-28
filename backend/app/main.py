@@ -48,3 +48,16 @@ async def root() -> dict[str, str]:
         "message": "Welcome to the English Development App API",
         "status": "ok",
     }
+
+
+@app.get("/json/version", tags=["Health"], include_in_schema=False)
+async def json_version() -> dict[str, str]:
+    """
+    Quiet probe used by some IDE/browser tools (avoids noisy 404s in logs).
+    Not part of the public API.
+    """
+    return {
+        "name": app.title,
+        "version": app.version,
+        "status": "ok",
+    }

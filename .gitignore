@@ -9,6 +9,9 @@
 **/__pycache__/
 *.pyc
 .Python
+**/htmlcov/
+.coverage
+**/.coverage
 
 # Generated TTS audio (keep folder via .gitkeep)
 backend/static/audio/*
