@@ -31,3 +31,16 @@ class LessonResponse(BaseModel):
     title: str
     icon_name: str
     order_index: int
+
+
+class LessonPathItem(BaseModel):
+    """Lesson row for the mobile learning-path map."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    unit_id: int
+    title: str
+    icon_name: str
+    order_index: int
+    is_completed: bool = False

@@ -1,18 +1,19 @@
-"""Admin-only CRUD for Units, Lessons, and Exercises."""
+"""CRUD for Units, Lessons, and Exercises (mutations are admin-only)."""
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import select
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, selectinload
 
 from app.database import get_db
-from app.deps import get_current_admin
+from app.deps import get_current_admin, get_current_user
 from app.models.exercise import Exercise
 from app.models.lesson import Lesson
 from app.models.unit import Unit
 from app.models.user import User
+from app.models.user_progress import UserProgress
 from app.schemas.exercise import ExerciseCreate, ExerciseResponse, ExerciseUpdate
-from app.schemas.lesson import LessonCreate, LessonResponse, LessonUpdate
-from app.schemas.unit import UnitCreate, UnitResponse, UnitUpdate
+from app.schemas.lesson import LessonCreate, LessonPathItem, LessonResponse, LessonUpdate
+from app.schemas.unit import UnitCreate, UnitResponse, UnitUpdate, UnitWithLessonsResponse
 
 router = APIRouter()
 
@@ -22,13 +23,52 @@ router = APIRouter()
 # ---------------------------------------------------------------------------
 
 
-@router.get("/units", response_model=list[UnitResponse])
+@router.get("/units", response_model=list[UnitWithLessonsResponse])
 def list_units(
-    _admin: User = Depends(get_current_admin),
+    current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
-) -> list[Unit]:
-    """List all units (admin only)."""
-    return list(db.scalars(select(Unit).order_by(Unit.order_index, Unit.id)).all())
+) -> list[UnitWithLessonsResponse]:
+    """
+    List units with nested lessons for the learning path.
+
+    Available to any authenticated user (mobile app + admin).
+    Includes per-lesson `is_completed` for the current user.
+    """
+    units = list(
+        db.scalars(
+            select(Unit)
+            .options(selectinload(Unit.lessons))
+            .order_by(Unit.order_index, Unit.id)
+        ).all()
+    )
+
+    progress_rows = db.scalars(
+        select(UserProgress).where(UserProgress.user_id == current_user.id)
+    ).all()
+    completed_ids = {row.lesson_id for row in progress_rows if row.is_completed}
+
+    result: list[UnitWithLessonsResponse] = []
+    for unit in units:
+        lessons_sorted = sorted(unit.lessons, key=lambda lesson: (lesson.order_index, lesson.id))
+        result.append(
+            UnitWithLessonsResponse(
+                id=unit.id,
+                title=unit.title,
+                order_index=unit.order_index,
+                lessons=[
+                    LessonPathItem(
+                        id=lesson.id,
+                        unit_id=lesson.unit_id,
+                        title=lesson.title,
+                        icon_name=lesson.icon_name,
+                        order_index=lesson.order_index,
+                        is_completed=lesson.id in completed_ids,
+                    )
+                    for lesson in lessons_sorted
+                ],
+            )
+        )
+    return result
 
 
 @router.post("/units", response_model=UnitResponse, status_code=status.HTTP_201_CREATED)
@@ -134,6 +174,26 @@ def get_lesson(
     if lesson is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Lesson not found")
     return lesson
+
+
+@router.get(
+    "/lessons/{lesson_id}/exercises",
+    response_model=list[ExerciseResponse],
+)
+def list_lesson_exercises(
+    lesson_id: int,
+    _user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> list[Exercise]:
+    """List exercises for a lesson (any authenticated user — mobile app)."""
+    if db.get(Lesson, lesson_id) is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Lesson not found")
+
+    return list(
+        db.scalars(
+            select(Exercise).where(Exercise.lesson_id == lesson_id).order_by(Exercise.id)
+        ).all()
+    )
 
 
 @router.patch("/lessons/{lesson_id}", response_model=LessonResponse)

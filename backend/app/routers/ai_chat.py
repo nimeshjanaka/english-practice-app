@@ -1,4 +1,4 @@
-"""Voice chat: Whisper STT → GPT tutor → TTS → progress update."""
+"""Voice chat: Groq Whisper STT → Llama tutor → PlayAI TTS → progress update."""
 
 from __future__ import annotations
 
@@ -20,7 +20,7 @@ from app.schemas.ai_chat import ChatResponse
 from app.services.ai_chat import (
     estimate_talk_seconds,
     generate_tutor_reply,
-    get_openai_client,
+    get_groq_client,
     synthesize_speech,
     transcribe_audio,
 )
@@ -41,7 +41,7 @@ async def chat(
     db: Session = Depends(get_db),
 ) -> ChatResponse:
     """
-    Accept learner audio + lesson_id, run STT → tutor GPT → TTS,
+    Accept learner audio + lesson_id, run Groq STT → Llama → PlayAI TTS,
     return reply audio URL + grammar notes, and bump ai_talk_time_seconds.
     """
     lesson = db.get(Lesson, lesson_id)
@@ -65,14 +65,14 @@ async def chat(
             shutil.copyfileobj(audio.file, tmp)
 
         try:
-            client = get_openai_client()
+            client = get_groq_client()
         except ValueError as exc:
             raise HTTPException(
                 status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
                 detail=str(exc),
             ) from exc
 
-        # 2) Speech → text (Whisper)
+        # 2) Speech → text (Groq Whisper large-v3)
         transcript = transcribe_audio(client, tmp_path)
         if not transcript:
             raise HTTPException(
@@ -80,17 +80,17 @@ async def chat(
                 detail="Could not transcribe audio. Please try speaking again.",
             )
 
-        # 3) Tutor reply + grammar JSON (GPT-4o-mini)
+        # 3) Tutor reply + grammar JSON (Llama 3.3 70B)
         tutor = generate_tutor_reply(client, transcript, lesson_title=lesson.title)
         reply = tutor["reply"]
         grammar_correction = tutor["grammar_correction"]
 
-        # 4) Text → speech (TTS MP3)
-        audio_filename = f"{uuid.uuid4().hex}.mp3"
+        # 4) Text → speech (PlayAI TTS WAV)
+        audio_filename = f"{uuid.uuid4().hex}.wav"
         output_path = STATIC_AUDIO_DIR / audio_filename
         synthesize_speech(client, reply, output_path)
 
-        # 5) Public URL for the generated MP3
+        # 5) Public URL for the generated audio
         audio_url = str(request.base_url).rstrip("/") + f"/static/audio/{audio_filename}"
 
         # 6) Update (or create) user progress talk time for this lesson
@@ -122,7 +122,7 @@ async def chat(
         )
     except HTTPException:
         raise
-    except Exception as exc:  # noqa: BLE001 — surface OpenAI / IO failures cleanly
+    except Exception as exc:  # noqa: BLE001 — surface Groq / IO failures cleanly
         raise HTTPException(
             status_code=status.HTTP_502_BAD_GATEWAY,
             detail=f"AI chat pipeline failed: {exc}",

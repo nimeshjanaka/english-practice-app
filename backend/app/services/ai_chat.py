@@ -1,13 +1,14 @@
-"""OpenAI Whisper → GPT tutor → TTS pipeline."""
+"""Groq Whisper → Llama tutor → PlayAI TTS pipeline."""
 
 from __future__ import annotations
 
 import json
+import os
 import re
 from pathlib import Path
 from typing import Any
 
-from openai import OpenAI
+from groq import Groq
 
 from app.config import get_settings
 
@@ -24,35 +25,43 @@ Keep language simple and supportive. Do not invent unrelated topics.
 """.strip()
 
 
-def get_openai_client() -> OpenAI:
-    """Build an OpenAI client from environment settings."""
+def get_groq_client() -> Groq:
+    """Build a Groq client from GROQ_API_KEY (env or settings)."""
     settings = get_settings()
-    if not settings.OPENAI_API_KEY:
+    api_key = os.environ.get("GROQ_API_KEY") or settings.GROQ_API_KEY
+    if not api_key:
         raise ValueError(
-            "OPENAI_API_KEY is missing. Add it to backend/.env (never commit real keys)."
+            "GROQ_API_KEY is missing. Add it to backend/.env (never commit real keys)."
         )
-    return OpenAI(api_key=settings.OPENAI_API_KEY)
+    return Groq(api_key=api_key)
 
 
-def transcribe_audio(client: OpenAI, audio_path: Path) -> str:
-    """Speech-to-text via OpenAI Whisper."""
+def transcribe_audio(client: Groq, audio_path: Path) -> str:
+    """Speech-to-text via Groq Whisper large-v3."""
     with audio_path.open("rb") as audio_file:
         result = client.audio.transcriptions.create(
-            model="whisper-1",
-            file=audio_file,
+            file=(audio_path.name, audio_file.read()),
+            model="whisper-large-v3",
+            language="en",
+            response_format="json",
+            temperature=0.0,
         )
-    return (result.text or "").strip()
+    return (getattr(result, "text", None) or "").strip()
 
 
-def generate_tutor_reply(client: OpenAI, learner_text: str, lesson_title: str | None = None) -> dict[str, str]:
+def generate_tutor_reply(
+    client: Groq,
+    learner_text: str,
+    lesson_title: str | None = None,
+) -> dict[str, str]:
     """
-    Ask GPT-4o-mini for a tutor reply + grammar correction as JSON.
+    Ask Llama 3.3 70B for a tutor reply + grammar correction as JSON.
 
     Returns dict with keys: reply, grammar_correction.
     """
     context = f'Lesson context: "{lesson_title}".\n' if lesson_title else ""
     completion = client.chat.completions.create(
-        model="gpt-4o-mini",
+        model="llama-3.3-70b-versatile",
         response_format={"type": "json_object"},
         messages=[
             {"role": "system", "content": TUTOR_SYSTEM_PROMPT},
@@ -71,16 +80,17 @@ def generate_tutor_reply(client: OpenAI, learner_text: str, lesson_title: str | 
     }
 
 
-def synthesize_speech(client: OpenAI, text: str, output_path: Path) -> None:
-    """Text-to-speech via OpenAI TTS; writes an MP3 to output_path."""
+def synthesize_speech(client: Groq, text: str, output_path: Path) -> None:
+    """Text-to-speech via Groq PlayAI TTS; writes audio to output_path."""
     output_path.parent.mkdir(parents=True, exist_ok=True)
-    with client.audio.speech.with_streaming_response.create(
-        model="tts-1",
-        voice="alloy",
+    # playai-tts defaults to wav; keep .wav extension on the saved file.
+    response = client.audio.speech.create(
+        model="playai-tts",
+        voice="Fritz-PlayAI",
         input=text,
-        response_format="mp3",
-    ) as response:
-        response.stream_to_file(output_path)
+        response_format="wav",
+    )
+    response.write_to_file(str(output_path))
 
 
 def estimate_talk_seconds(text: str) -> int:

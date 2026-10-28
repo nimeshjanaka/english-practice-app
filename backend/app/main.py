@@ -16,14 +16,12 @@ app = FastAPI(
     version="0.1.0",
 )
 
-# Allow Admin Panel (Next.js) and Expo mobile app during local development
+# Allow Admin Panel (Next.js) and Expo mobile / web during local development.
+# React Native itself does not use CORS; this mainly helps Expo web + browsers.
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://localhost:3000",  # Admin Panel (Next.js)
-        "http://localhost:8081",  # React Native Expo
-    ],
-    allow_credentials=True,
+    allow_origins=["*"],
+    allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
 )

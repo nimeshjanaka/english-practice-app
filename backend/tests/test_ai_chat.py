@@ -55,7 +55,7 @@ def _fake_synthesize_speech(_client, _text: str, output_path: Path) -> None:
     return_value={"reply": MOCK_REPLY, "grammar_correction": MOCK_GRAMMAR},
 )
 @patch("app.routers.ai_chat.transcribe_audio", return_value=MOCK_TRANSCRIPT)
-@patch("app.routers.ai_chat.get_openai_client", return_value=MagicMock())
+@patch("app.routers.ai_chat.get_groq_client", return_value=MagicMock())
 def test_ai_chat_returns_reply_and_audio_url(
     _mock_client,
     mock_transcribe,
@@ -84,11 +84,11 @@ def test_ai_chat_returns_reply_and_audio_url(
     assert body["reply"] == MOCK_REPLY
     assert body["grammar_correction"] == MOCK_GRAMMAR
     assert "audio_url" in body
-    assert body["audio_url"].endswith(".mp3")
+    assert body["audio_url"].endswith(".wav")
     assert "/static/audio/" in body["audio_url"]
     assert body["ai_talk_time_seconds"] > 0
 
-    # Ensure OpenAI helpers were invoked (and thus real APIs were not)
+    # Ensure Groq helpers were invoked (and thus real APIs were not)
     mock_transcribe.assert_called_once()
     mock_tutor.assert_called_once()
     mock_tts.assert_called_once()

@@ -1,7 +1,9 @@
-"""Tests for /api/auth register, login, and /me."""
+"""Tests for /api/auth register, login, forgot/reset, and /me."""
 
 REGISTER_URL = "/api/auth/register"
 LOGIN_URL = "/api/auth/login"
+FORGOT_URL = "/api/auth/forgot-password"
+RESET_URL = "/api/auth/reset-password"
 ME_URL = "/api/auth/me"
 
 SAMPLE_USER = {
@@ -11,16 +13,13 @@ SAMPLE_USER = {
 
 
 def test_register_new_user(client):
-    """Registering a new user should succeed and return the user profile."""
+    """Registering returns a JWT access token (auto sign-in)."""
     response = client.post(REGISTER_URL, json=SAMPLE_USER)
 
     assert response.status_code == 201
     data = response.json()
-    assert data["email"] == SAMPLE_USER["email"]
-    assert data["role"] == "user"
-    assert "id" in data
-    assert "password" not in data
-    assert "password_hash" not in data
+    assert data["access_token"]
+    assert data["token_type"] == "bearer"
 
 
 def test_register_duplicate_email(client):
@@ -65,6 +64,36 @@ def test_login_with_wrong_password(client):
 
     assert response.status_code == 401
     assert "Incorrect email or password" in response.json()["detail"]
+
+
+def test_forgot_and_reset_password(client):
+    client.post(REGISTER_URL, json=SAMPLE_USER)
+
+    forgot = client.post(FORGOT_URL, json={"email": SAMPLE_USER["email"]})
+    assert forgot.status_code == 200
+    token = forgot.json().get("reset_token")
+    assert token
+
+    reset = client.post(
+        RESET_URL,
+        json={"token": token, "new_password": "newsecurepass1"},
+    )
+    assert reset.status_code == 200
+    assert reset.json()["access_token"]
+
+    # Old password fails
+    old = client.post(
+        LOGIN_URL,
+        json={"email": SAMPLE_USER["email"], "password": SAMPLE_USER["password"]},
+    )
+    assert old.status_code == 401
+
+    # New password works
+    new = client.post(
+        LOGIN_URL,
+        json={"email": SAMPLE_USER["email"], "password": "newsecurepass1"},
+    )
+    assert new.status_code == 200
 
 
 def test_me_requires_auth(client):

@@ -1,8 +1,25 @@
 """Admin CRUD tests for /api/content (units, lessons, exercises)."""
 
 
-def test_content_requires_admin(client, user_headers):
+def test_list_units_available_to_learners(client, user_headers, admin_headers):
+    """Authenticated learners can fetch the learning-path units list."""
+    client.post(
+        "/api/content/units",
+        headers=admin_headers,
+        json={"title": "Starter", "order_index": 0},
+    )
     response = client.get("/api/content/units", headers=user_headers)
+    assert response.status_code == 200
+    assert isinstance(response.json(), list)
+    assert "lessons" in response.json()[0]
+
+
+def test_content_mutations_require_admin(client, user_headers):
+    response = client.post(
+        "/api/content/units",
+        headers=user_headers,
+        json={"title": "Nope", "order_index": 0},
+    )
     assert response.status_code == 403
 
 
@@ -149,3 +166,39 @@ def test_create_exercise_for_missing_lesson(client, admin_headers):
         },
     )
     assert response.status_code == 404
+
+
+def test_list_lesson_exercises_for_learner(client, user_headers, admin_headers):
+    unit = client.post(
+        "/api/content/units",
+        headers=admin_headers,
+        json={"title": "Unit A", "order_index": 0},
+    ).json()
+    lesson = client.post(
+        "/api/content/lessons",
+        headers=admin_headers,
+        json={
+            "unit_id": unit["id"],
+            "title": "Lesson A",
+            "icon_name": "book",
+            "order_index": 0,
+        },
+    ).json()
+    client.post(
+        "/api/content/exercises",
+        headers=admin_headers,
+        json={
+            "lesson_id": lesson["id"],
+            "type": "fill-in-the-blank",
+            "question_data": {"prompt": "I ___ happy"},
+            "correct_answer": {"answer": "am"},
+        },
+    )
+
+    response = client.get(
+        f"/api/content/lessons/{lesson['id']}/exercises",
+        headers=user_headers,
+    )
+    assert response.status_code == 200
+    assert len(response.json()) == 1
+    assert response.json()[0]["type"] == "fill-in-the-blank"

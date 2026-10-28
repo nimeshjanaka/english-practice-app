@@ -33,7 +33,19 @@ def create_access_token(subject: str | int, expires_delta: timedelta | None = No
         if expires_delta is not None
         else timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
     )
-    payload: dict[str, Any] = {"sub": str(subject), "exp": expire}
+    payload: dict[str, Any] = {"sub": str(subject), "exp": expire, "type": "access"}
+    return jwt.encode(payload, settings.SECRET_KEY, algorithm=settings.ALGORITHM)
+
+
+def create_reset_token(subject: str | int) -> str:
+    """Create a short-lived JWT used only for password reset."""
+    settings = get_settings()
+    expire = datetime.now(UTC) + timedelta(minutes=settings.RESET_TOKEN_EXPIRE_MINUTES)
+    payload: dict[str, Any] = {
+        "sub": str(subject),
+        "exp": expire,
+        "type": "password_reset",
+    }
     return jwt.encode(payload, settings.SECRET_KEY, algorithm=settings.ALGORITHM)
 
 
@@ -43,10 +55,20 @@ def decode_access_token(token: str) -> dict[str, Any]:
     return jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
 
 
+def decode_reset_token(token: str) -> dict[str, Any]:
+    """Decode a password-reset JWT; raises JWTError / ValueError if invalid."""
+    payload = decode_access_token(token)
+    if payload.get("type") != "password_reset":
+        raise ValueError("Not a password-reset token")
+    return payload
+
+
 __all__ = [
     "hash_password",
     "verify_password",
     "create_access_token",
+    "create_reset_token",
     "decode_access_token",
+    "decode_reset_token",
     "JWTError",
 ]

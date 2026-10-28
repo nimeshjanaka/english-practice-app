@@ -2,6 +2,8 @@
 
 from pydantic import BaseModel, ConfigDict, Field
 
+from app.schemas.lesson import LessonPathItem
+
 
 class UnitCreate(BaseModel):
     """Payload to create a unit."""
@@ -25,3 +27,9 @@ class UnitResponse(BaseModel):
     id: int
     title: str
     order_index: int
+
+
+class UnitWithLessonsResponse(UnitResponse):
+    """Unit with nested lessons + completion flags for the learning path."""
+
+    lessons: list[LessonPathItem] = []
