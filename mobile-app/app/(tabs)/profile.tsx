@@ -1,7 +1,9 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { router } from "expo-router";
+import { router, useFocusEffect } from "expo-router";
 import { User } from "lucide-react-native";
+import { useCallback, useMemo, useState } from "react";
 import {
+  ActivityIndicator,
   ScrollView,
   StyleSheet,
   Text,
@@ -10,13 +12,77 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import { TOKEN_KEY } from "../../src/constants/api";
+import api from "../../src/api";
+import { AUTH, TOKEN_KEY, UNITS_PATH } from "../../src/constants/api";
+
+type MeResponse = {
+  id: number;
+  email: string;
+  role?: string;
+};
+
+type LessonPathItem = {
+  id: number;
+  is_completed: boolean;
+};
+
+type UnitWithLessons = {
+  id: number;
+  lessons: LessonPathItem[];
+};
+
+function displayNameFromEmail(email: string): string {
+  const local = email.split("@")[0]?.trim() || "Learner";
+  return local
+    .replace(/[._-]+/g, " ")
+    .split(" ")
+    .filter(Boolean)
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(" ");
+}
 
 /**
- * Profile tab — dummy user info, progress, and logout.
+ * Profile tab — user email, name placeholder, lessons progress, logout.
  */
 export default function ProfileScreen() {
   const insets = useSafeAreaInsets();
+  const [email, setEmail] = useState<string>("");
+  const [completed, setCompleted] = useState(0);
+  const [total, setTotal] = useState(0);
+  const [loading, setLoading] = useState(true);
+
+  const loadProfile = useCallback(async () => {
+    setLoading(true);
+    try {
+      const [meRes, unitsRes] = await Promise.all([
+        api.get<MeResponse>(AUTH.me),
+        api.get<UnitWithLessons[]>(UNITS_PATH),
+      ]);
+
+      setEmail(meRes.data?.email ?? "");
+
+      const lessons = (unitsRes.data ?? []).flatMap((unit) => unit.lessons ?? []);
+      setTotal(lessons.length);
+      setCompleted(lessons.filter((lesson) => lesson.is_completed).length);
+    } catch {
+      // Interceptor handles 401; keep placeholders on other errors
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useFocusEffect(
+    useCallback(() => {
+      void loadProfile();
+    }, [loadProfile]),
+  );
+
+  const namePlaceholder = useMemo(
+    () => (email ? displayNameFromEmail(email) : "Learner"),
+    [email],
+  );
+
+  const progressPercent = total > 0 ? Math.round((completed / total) * 100) : 0;
 
   async function handleLogout() {
     await AsyncStorage.removeItem(TOKEN_KEY);
@@ -38,16 +104,31 @@ export default function ProfileScreen() {
         </View>
       </View>
 
-      <Text style={styles.name}>John Doe</Text>
-      <Text style={styles.email}>john.doe@example.com</Text>
+      {loading ? (
+        <ActivityIndicator color="#2563EB" style={{ marginBottom: 16 }} />
+      ) : null}
+
+      <Text style={styles.name}>{namePlaceholder}</Text>
+      <Text style={styles.email}>{email || "Loading email…"}</Text>
 
       <View style={styles.progressCard}>
         <Text style={styles.progressLabel}>Your progress</Text>
-        <Text style={styles.progressValue}>Lessons Completed: 3</Text>
+        <Text style={styles.progressValue}>
+          Lessons Completed: {completed}
+        </Text>
         <View style={styles.progressBarTrack}>
-          <View style={[styles.progressBarFill, { width: "60%" }]} />
+          <View
+            style={[
+              styles.progressBarFill,
+              { width: `${Math.min(100, Math.max(0, progressPercent))}%` },
+            ]}
+          />
         </View>
-        <Text style={styles.progressHint}>3 of 5 lessons finished</Text>
+        <Text style={styles.progressHint}>
+          {total > 0
+            ? `${completed} of ${total} lessons finished (${progressPercent}%)`
+            : "No lessons yet — start your learning path"}
+        </Text>
       </View>
 
       <TouchableOpacity

@@ -1,5 +1,3 @@
-import AsyncStorage from "@react-native-async-storage/async-storage";
-import axios from "axios";
 import { LinearGradient } from "expo-linear-gradient";
 import { router } from "expo-router";
 import { useCallback, useEffect, useMemo, useState } from "react";
@@ -15,7 +13,8 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import { getApiBaseUrl, TOKEN_KEY, UNITS_PATH } from "../../src/constants/api";
+import api, { axios } from "../../src/api";
+import { UNITS_PATH } from "../../src/constants/api";
 
 type LessonPathItem = {
   id: number;
@@ -45,7 +44,7 @@ const SCREEN_WIDTH = Dimensions.get("window").width;
 const NODE_SIZE = 80;
 const SIDE_INSET = SCREEN_WIDTH * 0.1;
 
-/** Zig-zag: left → right → center → left → right → … */
+/** Zig-zag path: left → right → center → repeat */
 function zigAlign(index: number): ZigAlign {
   const pattern: ZigAlign[] = ["left", "right", "center"];
   return pattern[index % 3];
@@ -58,7 +57,8 @@ function circleColor(status: LessonStatus): string {
 }
 
 /**
- * Learning Path tab — fetches units/lessons from /api/content/units.
+ * Learning Path — real units/lessons from GET /api/content/units,
+ * rendered as a Duolingo-style zig-zag of circular lesson buttons.
  */
 export default function LearningPathScreen() {
   const insets = useSafeAreaInsets();
@@ -70,23 +70,11 @@ export default function LearningPathScreen() {
   const loadUnits = useCallback(async () => {
     setError(null);
     try {
-      const token = await AsyncStorage.getItem(TOKEN_KEY);
-      if (!token) {
-        router.replace("/");
-        return;
-      }
-
-      // Same endpoint as http://localhost:8000/api/content/units —
-      // getApiBaseUrl() swaps in the LAN IP on a physical phone.
-      const response = await axios.get<UnitWithLessons[]>(
-        `${getApiBaseUrl()}${UNITS_PATH}`,
-        { headers: { Authorization: `Bearer ${token}` } },
-      );
-      setUnits(response.data ?? []);
+      // Axios instance attaches JWT from AsyncStorage automatically
+      const response = await api.get<UnitWithLessons[]>(UNITS_PATH);
+      setUnits(Array.isArray(response.data) ? response.data : []);
     } catch (err) {
       if (axios.isAxiosError(err) && err.response?.status === 401) {
-        await AsyncStorage.removeItem(TOKEN_KEY);
-        router.replace("/");
         return;
       }
       setError("Could not load your learning path. Pull to refresh.");
@@ -100,6 +88,7 @@ export default function LearningPathScreen() {
     void loadUnits();
   }, [loadUnits]);
 
+  /** Flatten units → lessons and mark completed / current / locked */
   const pathLessons: PathLesson[] = useMemo(() => {
     const flat: PathLesson[] = [];
     const orderedUnits = [...units].sort(
@@ -132,14 +121,21 @@ export default function LearningPathScreen() {
     });
   }, [units]);
 
-  const currentUnitTitle = useMemo(() => {
+  /** Unit title shown in the blue header */
+  const headerUnitTitle = useMemo(() => {
     const current = pathLessons.find((lesson) => lesson.status === "current");
     if (current) return current.unitTitle;
     if (pathLessons.length > 0) {
       return pathLessons[pathLessons.length - 1].unitTitle;
     }
-    return "No unit yet";
-  }, [pathLessons]);
+    if (units.length > 0) {
+      const first = [...units].sort(
+        (a, b) => a.order_index - b.order_index || a.id - b.id,
+      )[0];
+      return first.title;
+    }
+    return "Your Learning Path";
+  }, [pathLessons, units]);
 
   function onLessonPress(lesson: PathLesson) {
     if (lesson.status === "locked") return;
@@ -162,9 +158,12 @@ export default function LearningPathScreen() {
         end={{ x: 1, y: 1 }}
         style={[styles.header, { paddingTop: insets.top + 16 }]}
       >
-        <Text style={styles.headerEyebrow}>Keep practicing</Text>
-        <Text style={styles.headerTitle}>Your Learning Path</Text>
-        <Text style={styles.headerMeta}>{currentUnitTitle}</Text>
+        <Text style={styles.headerEyebrow}>Your Learning Path</Text>
+        <Text style={styles.headerTitle}>{headerUnitTitle}</Text>
+        <Text style={styles.headerMeta}>
+          {pathLessons.filter((l) => l.status === "completed").length} of{" "}
+          {pathLessons.length} lessons complete
+        </Text>
       </LinearGradient>
 
       <ScrollView
@@ -185,7 +184,7 @@ export default function LearningPathScreen() {
 
         {pathLessons.length === 0 ? (
           <Text style={styles.empty}>
-            No lessons yet. Run backend seed.py, then pull to refresh.
+            No lessons yet. Confirm seed data exists, then pull to refresh.
           </Text>
         ) : (
           <View style={styles.pathTrack}>
@@ -292,7 +291,7 @@ const styles = StyleSheet.create({
   headerMeta: {
     marginTop: 8,
     color: "#DBEAFE",
-    fontSize: 15,
+    fontSize: 14,
     fontWeight: "600",
   },
   scrollContent: {

@@ -1,4 +1,3 @@
-import axios from "axios";
 import { Link } from "expo-router";
 import { useState } from "react";
 import {
@@ -12,8 +11,9 @@ import {
   View,
 } from "react-native";
 
+import api from "../src/api";
 import { GoogleSignInButton } from "../src/components/GoogleSignInButton";
-import { AUTH, getApiBaseUrl } from "../src/constants/api";
+import { AUTH } from "../src/constants/api";
 import { authErrorMessage, saveTokenAndEnterApp } from "../src/lib/authSession";
 
 /**
@@ -35,7 +35,7 @@ export default function LoginScreen() {
 
     setLoading(true);
     try {
-      const response = await axios.post(`${getApiBaseUrl()}${AUTH.login}`, {
+      const response = await api.post(AUTH.login, {
         email: email.trim().toLowerCase(),
         password,
       });

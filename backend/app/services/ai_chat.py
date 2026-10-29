@@ -1,4 +1,4 @@
-"""Groq Whisper → Llama tutor → PlayAI TTS pipeline."""
+"""Groq Whisper → AI KIT tutor → Orpheus TTS pipeline."""
 
 from __future__ import annotations
 
@@ -12,16 +12,32 @@ from groq import Groq
 
 from app.config import get_settings
 
+# Models available on this Groq account (playai-tts / llama-3.3 are unavailable)
+STT_MODEL = "whisper-large-v3"
+CHAT_MODEL = "openai/gpt-oss-20b"
+TTS_MODEL = "canopylabs/orpheus-v1-english"
+TTS_VOICE = "autumn"
+TTS_MAX_CHARS = 200  # Orpheus input limit
+
 TUTOR_SYSTEM_PROMPT = """
-You are a friendly, patient spoken-English tutor for beginners.
-The learner spoke the message in the user content (transcribed from speech).
+You are AI KIT, a friendly spoken-English coach.
+You ONLY react to what the learner just said out loud (the transcript).
+Do not invent stories about them. Do not ask the next interview question —
+the app asks questions separately.
 
-Respond ONLY with a valid JSON object (no markdown) with exactly these keys:
-- "reply": a short natural spoken reply as the tutor (1-3 sentences). Encourage the learner.
-- "grammar_correction": a brief note on grammar or pronunciation issues in what they said.
-  If their English was fine, set this to an empty string "".
+Your job:
+1. Listen to their answer.
+2. If their English is weak, awkward, or wrong: correct it clearly.
+3. In "reply", speak naturally in 1-2 short sentences (under 180 characters).
+   When correction is needed, include the better sentence, e.g.
+   "Nice try. Better: My name is Sam."
+   If their English was already good, briefly praise and mirror a clean version.
+4. In "grammar_correction", write a short tip about grammar/pronunciation/word choice.
+   If everything was fine, use an empty string "".
 
-Keep language simple and supportive. Do not invent unrelated topics.
+Respond ONLY with valid JSON (no markdown) with exactly:
+- "reply"
+- "grammar_correction"
 """.strip()
 
 
@@ -41,7 +57,7 @@ def transcribe_audio(client: Groq, audio_path: Path) -> str:
     with audio_path.open("rb") as audio_file:
         result = client.audio.transcriptions.create(
             file=(audio_path.name, audio_file.read()),
-            model="whisper-large-v3",
+            model=STT_MODEL,
             language="en",
             response_format="json",
             temperature=0.0,
@@ -53,41 +69,54 @@ def generate_tutor_reply(
     client: Groq,
     learner_text: str,
     lesson_title: str | None = None,
+    current_question: str | None = None,
 ) -> dict[str, str]:
     """
-    Ask Llama 3.3 70B for a tutor reply + grammar correction as JSON.
+    Ask the Groq chat model for a correction-focused AI KIT reply as JSON.
 
     Returns dict with keys: reply, grammar_correction.
     """
-    context = f'Lesson context: "{lesson_title}".\n' if lesson_title else ""
+    parts: list[str] = []
+    if lesson_title:
+        parts.append(f'Lesson context: "{lesson_title}".')
+    if current_question:
+        parts.append(f'AI KIT asked: "{current_question}".')
+    parts.append(f"Learner said: {learner_text}")
+    user_content = "\n".join(parts)
+
     completion = client.chat.completions.create(
-        model="llama-3.3-70b-versatile",
+        model=CHAT_MODEL,
         response_format={"type": "json_object"},
         messages=[
             {"role": "system", "content": TUTOR_SYSTEM_PROMPT},
-            {
-                "role": "user",
-                "content": f"{context}Learner said: {learner_text}",
-            },
+            {"role": "user", "content": user_content},
         ],
-        temperature=0.6,
+        temperature=0.5,
     )
     raw = completion.choices[0].message.content or "{}"
     data = _parse_tutor_json(raw)
+    reply = str(data.get("reply", "")).strip() or "Good try! Say that again a little clearer."
+    # Keep TTS within Orpheus's 200-character limit
+    if len(reply) > TTS_MAX_CHARS:
+        reply = reply[: TTS_MAX_CHARS - 1].rstrip() + "…"
     return {
-        "reply": str(data.get("reply", "")).strip() or "Great effort! Try saying that again.",
+        "reply": reply,
         "grammar_correction": str(data.get("grammar_correction", "")).strip(),
     }
 
 
 def synthesize_speech(client: Groq, text: str, output_path: Path) -> None:
-    """Text-to-speech via Groq PlayAI TTS; writes audio to output_path."""
+    """
+    Text-to-speech via Groq Orpheus; writes a WAV to output_path.
+
+    Requires accepting Orpheus terms in the Groq console for this org/key.
+    """
     output_path.parent.mkdir(parents=True, exist_ok=True)
-    # playai-tts defaults to wav; keep .wav extension on the saved file.
+    spoken = (text or "").strip()[:TTS_MAX_CHARS] or "Great job!"
     response = client.audio.speech.create(
-        model="playai-tts",
-        voice="Fritz-PlayAI",
-        input=text,
+        model=TTS_MODEL,
+        voice=TTS_VOICE,
+        input=spoken,
         response_format="wav",
     )
     response.write_to_file(str(output_path))

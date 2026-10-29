@@ -1,4 +1,3 @@
-import axios from "axios";
 import { Link, useLocalSearchParams } from "expo-router";
 import { useState } from "react";
 import {
@@ -12,7 +11,8 @@ import {
   View,
 } from "react-native";
 
-import { AUTH, getApiBaseUrl } from "../src/constants/api";
+import api from "../src/api";
+import { AUTH } from "../src/constants/api";
 import { authErrorMessage, saveTokenAndEnterApp } from "../src/lib/authSession";
 
 /**
@@ -44,7 +44,7 @@ export default function ResetPasswordScreen() {
 
     setLoading(true);
     try {
-      const response = await axios.post(`${getApiBaseUrl()}${AUTH.resetPassword}`, {
+      const response = await api.post(AUTH.resetPassword, {
         token: token.trim(),
         new_password: password,
       });

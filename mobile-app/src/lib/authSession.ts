@@ -1,8 +1,8 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import axios from "axios";
 import { router } from "expo-router";
 
-import { AUTH, getApiBaseUrl, TOKEN_KEY } from "../constants/api";
+import api, { axios } from "../api";
+import { AUTH, TOKEN_KEY } from "../constants/api";
 
 export async function saveTokenAndEnterApp(accessToken: string): Promise<void> {
   await AsyncStorage.setItem(TOKEN_KEY, accessToken);
@@ -21,7 +21,7 @@ export function authErrorMessage(err: unknown, fallback: string): string {
 }
 
 export async function loginWithGoogleIdToken(idToken: string): Promise<void> {
-  const response = await axios.post(`${getApiBaseUrl()}${AUTH.google}`, {
+  const response = await api.post(AUTH.google, {
     id_token: idToken,
   });
   const accessToken = response.data?.access_token as string | undefined;

@@ -17,33 +17,33 @@ type RolePlay = {
   image: ImageSourcePropType;
 };
 
-/** Dummy role-play scenarios with local card images. */
+/** Practice scenarios for the Role Plays tab. */
 const ROLE_PLAYS: RolePlay[] = [
   {
     id: 1,
     title: "Ordering Coffee",
     description:
-      "Practice ordering a drink, asking for sizes, and handling a friendly barista conversation.",
+      "Practice ordering a drink, asking for sizes, and chatting with a barista.",
     image: require("../../assets/role-plays/coffee.jpg"),
   },
   {
     id: 2,
     title: "At the Airport",
     description:
-      "Check in for a flight, ask about gates, and talk through common travel situations.",
+      "Check in for a flight, ask about gates, and handle common travel questions.",
     image: require("../../assets/role-plays/airport.jpg"),
   },
   {
     id: 3,
     title: "Meeting a Friend",
     description:
-      "Greet someone, make small talk, and arrange plans for later in natural spoken English.",
+      "Greet someone, make small talk, and arrange plans in natural spoken English.",
     image: require("../../assets/role-plays/friend.jpg"),
   },
 ];
 
 /**
- * Role Plays tab — scenario cards with images that open AI conversation practice.
+ * Role Plays tab — 3 scenario cards with Start Chat.
  */
 export default function RolePlaysScreen() {
   const insets = useSafeAreaInsets();
@@ -64,9 +64,9 @@ export default function RolePlaysScreen() {
       ]}
       showsVerticalScrollIndicator={false}
     >
-      <Text style={styles.heading}>Practice real conversations</Text>
+      <Text style={styles.heading}>Role Plays</Text>
       <Text style={styles.subheading}>
-        Pick a scenario and chat with the AI tutor.
+        Pick a scenario and start a practice chat with the AI tutor.
       </Text>
 
       {ROLE_PLAYS.map((rolePlay) => (

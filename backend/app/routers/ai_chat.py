@@ -1,4 +1,4 @@
-"""Voice chat: Groq Whisper STT → Llama tutor → PlayAI TTS → progress update."""
+"""Voice chat: Groq Whisper STT → AI KIT tutor → Orpheus TTS → progress update."""
 
 from __future__ import annotations
 
@@ -16,7 +16,7 @@ from app.deps import get_current_user
 from app.models.lesson import Lesson
 from app.models.user import User
 from app.models.user_progress import UserProgress
-from app.schemas.ai_chat import ChatResponse
+from app.schemas.ai_chat import ChatResponse, SpeakResponse
 from app.services.ai_chat import (
     estimate_talk_seconds,
     generate_tutor_reply,
@@ -32,21 +32,102 @@ STATIC_AUDIO_DIR = Path(__file__).resolve().parents[2] / "static" / "audio"
 ALLOWED_AUDIO_SUFFIXES = {".m4a", ".mp3", ".wav", ".webm", ".ogg", ".mp4", ".mpeg", ".mpga", ".oga"}
 
 
+def _require_lesson(db: Session, lesson_id: int) -> Lesson:
+    lesson = db.get(Lesson, lesson_id)
+    if lesson is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Lesson not found")
+    return lesson
+
+
+def _try_tts(request: Request, client: object, text: str) -> str:
+    """Synthesize speech; return audio URL or empty string if TTS fails."""
+    try:
+        audio_filename = f"{uuid.uuid4().hex}.wav"
+        output_path = STATIC_AUDIO_DIR / audio_filename
+        synthesize_speech(client, text, output_path)
+        return str(request.base_url).rstrip("/") + f"/static/audio/{audio_filename}"
+    except Exception:
+        # Common cause: Orpheus model terms not accepted in Groq console yet.
+        return ""
+
+
+def _bump_talk_time(
+    db: Session,
+    user: User,
+    lesson_id: int,
+    *texts: str,
+) -> int:
+    added = sum(estimate_talk_seconds(t) for t in texts if t)
+    progress = db.scalar(
+        select(UserProgress).where(
+            UserProgress.user_id == user.id,
+            UserProgress.lesson_id == lesson_id,
+        )
+    )
+    if progress is None:
+        progress = UserProgress(
+            user_id=user.id,
+            lesson_id=lesson_id,
+            ai_talk_time_seconds=0,
+        )
+        db.add(progress)
+
+    progress.ai_talk_time_seconds += max(1, added)
+    db.commit()
+    db.refresh(progress)
+    return progress.ai_talk_time_seconds
+
+
+@router.post("/speak", response_model=SpeakResponse)
+async def speak(
+    request: Request,
+    lesson_id: int = Form(...),
+    text: str = Form(...),
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> SpeakResponse:
+    """
+    Speak an AI KIT line (intro / next question) without learner audio.
+    Used after the user taps Start and between Q&A turns.
+    """
+    _require_lesson(db, lesson_id)
+    spoken = (text or "").strip()
+    if not spoken:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Text is required for AI KIT to speak.",
+        )
+
+    STATIC_AUDIO_DIR.mkdir(parents=True, exist_ok=True)
+
+    try:
+        client = get_groq_client()
+    except ValueError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail=str(exc),
+        ) from exc
+
+    audio_url = _try_tts(request, client, spoken)
+    _bump_talk_time(db, current_user, lesson_id, spoken)
+
+    return SpeakResponse(text=spoken, audio_url=audio_url)
+
+
 @router.post("/chat", response_model=ChatResponse)
 async def chat(
     request: Request,
     lesson_id: int = Form(...),
     audio: UploadFile = File(...),
+    current_question: str = Form(""),
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ) -> ChatResponse:
     """
-    Accept learner audio + lesson_id, run Groq STT → Llama → PlayAI TTS,
-    return reply audio URL + grammar notes, and bump ai_talk_time_seconds.
+    Accept learner audio + lesson_id (+ optional current_question),
+    run Groq STT → AI KIT correction → TTS, and bump ai_talk_time_seconds.
     """
-    lesson = db.get(Lesson, lesson_id)
-    if lesson is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Lesson not found")
+    lesson = _require_lesson(db, lesson_id)
 
     suffix = Path(audio.filename or "upload.m4a").suffix.lower() or ".m4a"
     if suffix not in ALLOWED_AUDIO_SUFFIXES:
@@ -59,7 +140,6 @@ async def chat(
 
     tmp_path: Path | None = None
     try:
-        # 1) Save uploaded audio temporarily
         with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as tmp:
             tmp_path = Path(tmp.name)
             shutil.copyfileobj(audio.file, tmp)
@@ -72,7 +152,6 @@ async def chat(
                 detail=str(exc),
             ) from exc
 
-        # 2) Speech → text (Groq Whisper large-v3)
         transcript = transcribe_audio(client, tmp_path)
         if not transcript:
             raise HTTPException(
@@ -80,45 +159,24 @@ async def chat(
                 detail="Could not transcribe audio. Please try speaking again.",
             )
 
-        # 3) Tutor reply + grammar JSON (Llama 3.3 70B)
-        tutor = generate_tutor_reply(client, transcript, lesson_title=lesson.title)
+        tutor = generate_tutor_reply(
+            client,
+            transcript,
+            lesson_title=lesson.title,
+            current_question=current_question.strip() or None,
+        )
         reply = tutor["reply"]
         grammar_correction = tutor["grammar_correction"]
 
-        # 4) Text → speech (PlayAI TTS WAV)
-        audio_filename = f"{uuid.uuid4().hex}.wav"
-        output_path = STATIC_AUDIO_DIR / audio_filename
-        synthesize_speech(client, reply, output_path)
-
-        # 5) Public URL for the generated audio
-        audio_url = str(request.base_url).rstrip("/") + f"/static/audio/{audio_filename}"
-
-        # 6) Update (or create) user progress talk time for this lesson
-        added_seconds = estimate_talk_seconds(transcript) + estimate_talk_seconds(reply)
-        progress = db.scalar(
-            select(UserProgress).where(
-                UserProgress.user_id == current_user.id,
-                UserProgress.lesson_id == lesson_id,
-            )
-        )
-        if progress is None:
-            progress = UserProgress(
-                user_id=current_user.id,
-                lesson_id=lesson_id,
-                ai_talk_time_seconds=0,
-            )
-            db.add(progress)
-
-        progress.ai_talk_time_seconds += added_seconds
-        db.commit()
-        db.refresh(progress)
+        audio_url = _try_tts(request, client, reply)
+        total_seconds = _bump_talk_time(db, current_user, lesson_id, transcript, reply)
 
         return ChatResponse(
             transcript=transcript,
             reply=reply,
             grammar_correction=grammar_correction,
             audio_url=audio_url,
-            ai_talk_time_seconds=progress.ai_talk_time_seconds,
+            ai_talk_time_seconds=total_seconds,
         )
     except HTTPException:
         raise

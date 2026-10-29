@@ -51,12 +51,16 @@ export const AUTH = {
   google: "/api/auth/google",
   forgotPassword: "/api/auth/forgot-password",
   resetPassword: "/api/auth/reset-password",
+  me: "/api/auth/me",
 } as const;
 
 export const UNITS_PATH = "/api/content/units";
 
-/** Voice AI chat — multipart FormData with lesson_id + audio */
+/** Voice AI chat — multipart FormData with lesson_id + audio (+ current_question) */
 export const AI_CHAT_PATH = "/api/ai/chat";
+
+/** AI KIT TTS for intro / next question — FormData with lesson_id + text */
+export const AI_SPEAK_PATH = "/api/ai/speak";
 
 export function lessonExercisesPath(lessonId: string | number): string {
   return `/api/content/lessons/${lessonId}/exercises`;

@@ -92,3 +92,31 @@ def test_ai_chat_returns_reply_and_audio_url(
     mock_transcribe.assert_called_once()
     mock_tutor.assert_called_once()
     mock_tts.assert_called_once()
+
+
+SPEAK_URL = "/api/ai/speak"
+
+
+@patch("app.routers.ai_chat.synthesize_speech", side_effect=_fake_synthesize_speech)
+@patch("app.routers.ai_chat.get_groq_client", return_value=MagicMock())
+def test_ai_speak_returns_audio_url(
+    _mock_client,
+    mock_tts,
+    client,
+    db_session,
+):
+    """POST /api/ai/speak turns AI KIT question text into optional TTS audio."""
+    lesson = _seed_lesson(db_session)
+    headers = _auth_headers(client)
+    data = {
+        "lesson_id": str(lesson.id),
+        "text": "Hi! My name is AI KIT. What is your name?",
+    }
+
+    response = client.post(SPEAK_URL, headers=headers, data=data)
+
+    assert response.status_code == 200
+    body = response.json()
+    assert "AI KIT" in body["text"]
+    assert "/static/audio/" in body["audio_url"]
+    mock_tts.assert_called_once()

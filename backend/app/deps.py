@@ -8,30 +8,46 @@ from app.database import get_db
 from app.models.user import User, UserRole
 from app.services.security import JWTError, decode_access_token
 
-# Bearer token from Authorization: Bearer <jwt>
-bearer_scheme = HTTPBearer(auto_error=True)
+# Extract Authorization: Bearer <jwt> — auto_error=False so we return a clear 401
+bearer_scheme = HTTPBearer(auto_error=False)
 
 
 def get_current_user(
-    credentials: HTTPAuthorizationCredentials = Depends(bearer_scheme),
+    credentials: HTTPAuthorizationCredentials | None = Depends(bearer_scheme),
     db: Session = Depends(get_db),
 ) -> User:
     """
-    Protect routes by verifying the JWT and loading the user.
+    Protect routes by reading the Bearer token, decoding it with SECRET_KEY,
+    and loading the matching user from the database.
 
-    Usage:
-        @router.get("/me")
-        def me(current_user: User = Depends(get_current_user)):
-            ...
+    Expected header:
+        Authorization: Bearer <access_token>
     """
+    if credentials is None or not credentials.credentials:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Not authenticated. Send header: Authorization: Bearer <token>",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+
+    if credentials.scheme.lower() != "bearer":
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid authentication scheme. Use Bearer.",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
-        detail="Could not validate credentials",
+        detail="Could not validate credentials. Token may be invalid or expired — please log in again.",
         headers={"WWW-Authenticate": "Bearer"},
     )
 
     try:
+        # Decodes with Settings.SECRET_KEY + ALGORITHM from .env / config
         payload = decode_access_token(credentials.credentials)
+        if payload.get("type") != "access":
+            raise credentials_exception
         user_id = payload.get("sub")
         if user_id is None:
             raise credentials_exception

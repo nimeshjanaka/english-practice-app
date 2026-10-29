@@ -50,9 +50,20 @@ def create_reset_token(subject: str | int) -> str:
 
 
 def decode_access_token(token: str) -> dict[str, Any]:
-    """Decode and validate a JWT; raises JWTError if invalid/expired."""
+    """
+    Decode and validate a JWT with SECRET_KEY / ALGORITHM from settings.
+
+    Raises JWTError if the signature is wrong, the token is expired, or malformed.
+    """
     settings = get_settings()
-    return jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
+    if not settings.SECRET_KEY:
+        raise JWTError("SECRET_KEY is not configured")
+    return jwt.decode(
+        token,
+        settings.SECRET_KEY,
+        algorithms=[settings.ALGORITHM],
+        options={"require_sub": True, "require_exp": True},
+    )
 
 
 def decode_reset_token(token: str) -> dict[str, Any]:
