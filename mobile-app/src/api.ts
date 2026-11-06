@@ -33,7 +33,7 @@ api.interceptors.response.use(
     // Login/register 401 = bad credentials — do not force logout redirect
     if (status === 401 && !isAuthRoute) {
       await AsyncStorage.removeItem(TOKEN_KEY);
-      router.replace("/");
+      router.replace("/login");
     }
 
     return Promise.reject(error);

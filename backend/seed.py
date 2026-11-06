@@ -12,56 +12,83 @@ from app.database import SessionLocal
 from app.models.exercise import Exercise
 from app.models.lesson import Lesson
 from app.models.unit import Unit
+from app.models.user_progress import UserProgress
 
 
-NUMBER_WORDS = [
-    "One",
-    "Two",
-    "Three",
-    "Four",
-    "Five",
-    "Six",
-    "Seven",
-    "Eight",
-    "Nine",
-    "Ten",
+PATH_LESSONS = [
+    ("Greetings", "wave", 1),
+    ("Introductions", "users", 2),
+    ("Personal information", "user", 3),
+    ("Countries", "globe", 4),
+    ("Jobs", "briefcase", 5),
+    ("Asking questions", "message", 6),
+    ("Listening", "headphones", 7),
+    ("Speaking", "mic", 8),
+    ("Revision", "refresh", 9),
+    ("Unit test", "exam", 10),
 ]
 
 
-def _match_number_exercise(lesson_id: int, digit: int, word: str) -> Exercise:
-    # Shuffle-ish stable order: rotate the bank so each question feels different
-    start = (digit - 1) % len(NUMBER_WORDS)
-    options = NUMBER_WORDS[start:] + NUMBER_WORDS[:start]
-    return Exercise(
-        lesson_id=lesson_id,
-        type="drag-drop-match",
-        question_data={
-            "prompt": "Match the numbers",
-            "prompt_value": str(digit),
-            "options": options,
-            "instruction": "Drag and drop the correct answer here",
-        },
-        correct_answer={"answer": word},
-    )
+def _retire_old_path(db) -> None:
+    """Remove the previous Basics / Daily Life path so only the new trail remains."""
+    old_units = db.query(Unit).filter(Unit.title.in_(("Unit 1: Basics", "Unit 2: Daily Life"))).all()
+    old_ids = [unit.id for unit in old_units]
+    if not old_ids:
+        return
+    lesson_ids = [row.id for row in db.query(Lesson.id).filter(Lesson.unit_id.in_(old_ids)).all()]
+    if lesson_ids:
+        db.query(UserProgress).filter(UserProgress.lesson_id.in_(lesson_ids)).delete(synchronize_session=False)
+        db.query(Exercise).filter(Exercise.lesson_id.in_(lesson_ids)).delete(synchronize_session=False)
+        db.query(Lesson).filter(Lesson.id.in_(lesson_ids)).delete(synchronize_session=False)
+    for unit in old_units:
+        db.delete(unit)
+    db.flush()
+
+
+def _ensure_course(db, unit: Unit) -> None:
+    """Attach the path unit to a published A1 course so /api/v1/courses can list it."""
+    from app.domain.content import LEVEL_SEED
+    from app.models.curriculum import CefrLevel, Course
+
+    for code, name, description, order in LEVEL_SEED:
+        if db.get(CefrLevel, code) is None:
+            db.add(CefrLevel(code=code, name=name, description=description, sort_order=order))
+    db.flush()
+
+    course = db.query(Course).filter(Course.title == "A1 English").first()
+    if course is None:
+        course = Course(
+            level_code="A1",
+            title="A1 English",
+            description="First release: introducing yourself and basic communication.",
+            status="published",
+            order_index=1,
+        )
+        db.add(course)
+        db.flush()
+    elif course.status not in ("published", "approved"):
+        course.status = "published"
+
+    unit.course_id = course.id
+    unit.level_code = unit.level_code or "A1"
 
 
 def _ensure_units_and_lessons(db) -> dict[str, Lesson]:
-    unit1 = db.query(Unit).filter(Unit.title == "Unit 1: Basics").first()
-    unit2 = db.query(Unit).filter(Unit.title == "Unit 2: Daily Life").first()
+    _retire_old_path(db)
+    unit = db.query(Unit).filter(Unit.title == "Introducing Yourself").first()
+    if unit is None:
+        unit = Unit(
+            title="Introducing Yourself",
+            order_index=1,
+            level_code="A1",
+            description="Say hello and introduce yourself.",
+            outcome="Hold a short first conversation.",
+            status="published",
+        )
+        db.add(unit)
+        db.flush()
 
-    if unit1 is None:
-        unit1 = Unit(title="Unit 1: Basics", order_index=1)
-        db.add(unit1)
-    if unit2 is None:
-        unit2 = Unit(title="Unit 2: Daily Life", order_index=2)
-        db.add(unit2)
-    db.flush()
-
-    wanted = [
-        ("Hello & Goodbye", "wave", 1, unit1.id),
-        ("Introducing Yourself", "user", 2, unit1.id),
-        ("Numbers 1-10", "hash", 3, unit1.id),
-    ]
+    wanted = [(title, icon, order, unit.id) for title, icon, order in PATH_LESSONS]
     by_title: dict[str, Lesson] = {}
     for title, icon, order_index, unit_id in wanted:
         lesson = (
@@ -79,16 +106,15 @@ def _ensure_units_and_lessons(db) -> dict[str, Lesson]:
             db.add(lesson)
             db.flush()
         by_title[title] = lesson
+    _ensure_course(db, unit)
     return by_title
 
 
 def _ensure_exercises(db, lessons: dict[str, Lesson]) -> None:
-    hello = lessons["Hello & Goodbye"]
-    numbers = lessons["Numbers 1-10"]
-    intro = lessons["Introducing Yourself"]
+    hello = lessons["Greetings"]
+    intro = lessons["Introductions"]
 
-    # Clear old demo exercises for these lessons so Match UI is consistent
-    for lesson in (hello, numbers, intro):
+    for lesson in (hello, intro):
         db.query(Exercise).filter(Exercise.lesson_id == lesson.id).delete()
 
     # Hello — match greeting words
@@ -166,10 +192,6 @@ def _ensure_exercises(db, lessons: dict[str, Lesson]) -> None:
             correct_answer={"answer": "is"},
         )
     )
-
-    # Numbers 1–10 — Match the numbers (like the reference screens)
-    for digit, word in enumerate(NUMBER_WORDS, start=1):
-        db.add(_match_number_exercise(numbers.id, digit, word))
 
 
 def seed() -> None:

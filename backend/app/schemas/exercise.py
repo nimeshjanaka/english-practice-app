@@ -33,3 +33,18 @@ class ExerciseResponse(BaseModel):
     type: str
     question_data: dict[str, Any]
     correct_answer: dict[str, Any]
+
+
+class ExerciseSubmit(BaseModel):
+    """Learner answer. Only the fields for the current exercise type are used."""
+
+    answer: str | None = None
+    order: list[str] | None = None
+    pairs: list[list[str]] | None = None
+
+
+class ExerciseSubmitResult(BaseModel):
+    """Result of checking an answer. The stored key is not returned."""
+
+    is_correct: bool
+    explanation: str

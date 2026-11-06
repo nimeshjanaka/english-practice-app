@@ -24,7 +24,7 @@ class Settings(BaseSettings):
     # Groq API key for Whisper STT, Llama chat, and PlayAI TTS (set in .env)
     GROQ_API_KEY: str = ""
 
-    # Legacy OpenAI key (optional; AI chat now uses Groq)
+    # OpenAI key for GPT-4o lesson generation. Voice chat uses Groq.
     OPENAI_API_KEY: str = ""
 
     # JWT auth — override SECRET_KEY in .env with a long random string

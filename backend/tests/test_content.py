@@ -202,3 +202,106 @@ def test_list_lesson_exercises_for_learner(client, user_headers, admin_headers):
     assert response.status_code == 200
     assert len(response.json()) == 1
     assert response.json()[0]["type"] == "fill-in-the-blank"
+
+
+def _lesson_with_exercise(client, admin_headers, exercise_type: str, question: dict, answer: dict) -> int:
+    unit = client.post(
+        "/api/content/units",
+        headers=admin_headers,
+        json={"title": "Practice unit", "order_index": 0},
+    ).json()
+    lesson = client.post(
+        "/api/content/lessons",
+        headers=admin_headers,
+        json={"unit_id": unit["id"], "title": "Practice", "icon_name": "book", "order_index": 0},
+    ).json()
+    created = client.post(
+        "/api/content/exercises",
+        headers=admin_headers,
+        json={
+            "lesson_id": lesson["id"],
+            "type": exercise_type,
+            "question_data": question,
+            "correct_answer": answer,
+        },
+    )
+    assert created.status_code == 201, created.text
+    return created.json()["id"]
+
+
+def test_submit_multiple_choice_and_fill_blank(client, user_headers, admin_headers):
+    choice_id = _lesson_with_exercise(
+        client,
+        admin_headers,
+        "multiple_choice",
+        {"question": "Morning greeting?", "options": ["Good night", "Good morning"]},
+        {"answer": "Good morning"},
+    )
+    wrong = client.post(
+        f"/api/content/exercises/{choice_id}/submit",
+        headers=user_headers,
+        json={"answer": "Good night"},
+    )
+    assert wrong.status_code == 200
+    assert wrong.json()["is_correct"] is False
+    assert wrong.json()["explanation"]
+
+    right = client.post(
+        f"/api/content/exercises/{choice_id}/submit",
+        headers=user_headers,
+        json={"answer": "good morning"},
+    )
+    assert right.json()["is_correct"] is True
+
+    blank_id = _lesson_with_exercise(
+        client,
+        admin_headers,
+        "fill_blank",
+        {"sentence": "My name _____ Sam."},
+        {"answer": "is"},
+    )
+    filled = client.post(
+        f"/api/content/exercises/{blank_id}/submit",
+        headers=user_headers,
+        json={"answer": "is"},
+    )
+    assert filled.status_code == 200
+    assert filled.json()["is_correct"] is True
+
+
+def test_submit_ordering_and_matching(client, user_headers, admin_headers):
+    order_id = _lesson_with_exercise(
+        client,
+        admin_headers,
+        "sentence_ordering",
+        {"tokens": ["Sam", "am", "I"]},
+        {"order": ["I", "am", "Sam"]},
+    )
+    ordered = client.post(
+        f"/api/content/exercises/{order_id}/submit",
+        headers=user_headers,
+        json={"order": ["I", "am", "Sam"]},
+    )
+    assert ordered.status_code == 200
+    assert ordered.json()["is_correct"] is True
+
+    match_id = _lesson_with_exercise(
+        client,
+        admin_headers,
+        "matching",
+        {"pairs": [["Hello", "A greeting"], ["Goodbye", "A farewell"]]},
+        {"pairs": [["Hello", "A greeting"], ["Goodbye", "A farewell"]]},
+    )
+    matched = client.post(
+        f"/api/content/exercises/{match_id}/submit",
+        headers=user_headers,
+        json={"pairs": [["Goodbye", "A farewell"], ["Hello", "A greeting"]]},
+    )
+    assert matched.status_code == 200
+    assert matched.json()["is_correct"] is True
+
+
+def test_submit_requires_auth_and_missing_is_404(client, user_headers):
+    assert client.post("/api/content/exercises/1/submit", json={"answer": "x"}).status_code == 401
+    missing = client.post("/api/content/exercises/9999/submit", headers=user_headers, json={"answer": "x"})
+    assert missing.status_code == 404

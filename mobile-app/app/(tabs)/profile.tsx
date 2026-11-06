@@ -86,7 +86,7 @@ export default function ProfileScreen() {
 
   async function handleLogout() {
     await AsyncStorage.removeItem(TOKEN_KEY);
-    router.replace("/");
+    router.replace("/login");
   }
 
   return (

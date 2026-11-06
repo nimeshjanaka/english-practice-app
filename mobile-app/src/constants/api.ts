@@ -56,6 +56,9 @@ export const AUTH = {
 
 export const UNITS_PATH = "/api/content/units";
 
+/** Learner courses with nested lessons for the learning path. */
+export const COURSES_PATH = "/api/v1/courses";
+
 /** Voice AI chat — multipart FormData with lesson_id + audio (+ current_question) */
 export const AI_CHAT_PATH = "/api/ai/chat";
 
@@ -64,6 +67,10 @@ export const AI_SPEAK_PATH = "/api/ai/speak";
 
 export function lessonExercisesPath(lessonId: string | number): string {
   return `/api/content/lessons/${lessonId}/exercises`;
+}
+
+export function exerciseSubmitPath(exerciseId: string | number): string {
+  return `/api/content/exercises/${exerciseId}/submit`;
 }
 
 /** Google Web Client ID — set in app.json extra or EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID */

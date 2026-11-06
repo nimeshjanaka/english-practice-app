@@ -72,15 +72,17 @@ export function DragMatchExercise({ data, onContinue }: DragMatchExerciseProps) 
         <View style={styles.progressTrack}>
           <View style={[styles.progressFill, { width: `${Math.round(data.progress * 100)}%` }]} />
         </View>
+        <Text style={styles.counter}>{data.counterLabel}</Text>
       </View>
 
       <View style={styles.instructionRow}>
         <View style={styles.speakerBtn}>
           <Volume2 color="#64748B" size={18} strokeWidth={2.2} />
         </View>
-        <Text style={styles.instruction}>{data.prompt}</Text>
+        <Text style={styles.instruction} numberOfLines={2}>
+          {data.prompt}
+        </Text>
       </View>
-      <Text style={styles.counter}>{data.counterLabel}</Text>
 
       <Text style={styles.promptValue}>{data.promptValue}</Text>
 
@@ -93,7 +95,7 @@ export function DragMatchExercise({ data, onContinue }: DragMatchExerciseProps) 
         ]}
       >
         {selected ? (
-          <>
+          <View style={styles.droppedWrap}>
             <View style={styles.droppedChip}>
               <Text style={styles.droppedChipText}>{selected}</Text>
             </View>
@@ -107,7 +109,7 @@ export function DragMatchExercise({ data, onContinue }: DragMatchExerciseProps) 
                 <X color="#FFFFFF" size={14} strokeWidth={3} />
               </Pressable>
             ) : null}
-          </>
+          </View>
         ) : (
           <Text style={styles.dropHint}>Drag and drop the correct answer here</Text>
         )}
@@ -266,9 +268,14 @@ const styles = StyleSheet.create({
     paddingTop: 8,
   },
   topBar: {
-    paddingVertical: 8,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    paddingTop: 4,
+    paddingBottom: 8,
   },
   progressTrack: {
+    flex: 1,
     height: 10,
     borderRadius: 999,
     backgroundColor: "#E2E8F0",
@@ -296,20 +303,23 @@ const styles = StyleSheet.create({
   instruction: {
     flex: 1,
     fontSize: 18,
-    fontWeight: "600",
+    fontWeight: "700",
     color: "#64748B",
+    lineHeight: 24,
   },
   counter: {
-    marginTop: 6,
-    marginLeft: 44,
+    minWidth: 36,
+    textAlign: "right",
     fontSize: 14,
-    fontWeight: "600",
+    fontWeight: "700",
     color: "#94A3B8",
   },
   promptValue: {
-    marginTop: 28,
+    marginTop: 20,
+    marginBottom: 4,
     textAlign: "center",
-    fontSize: 56,
+    fontSize: 48,
+    lineHeight: 58,
     fontWeight: "800",
     color: "#0F172A",
   },
@@ -344,6 +354,10 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: "500",
   },
+  droppedWrap: {
+    position: "relative",
+    alignSelf: "center",
+  },
   droppedChip: {
     backgroundColor: "#FFFFFF",
     borderRadius: 12,
@@ -364,8 +378,8 @@ const styles = StyleSheet.create({
   },
   clearBtn: {
     position: "absolute",
-    top: -10,
-    right: -6,
+    top: -8,
+    right: -8,
     width: 26,
     height: 26,
     borderRadius: 13,
@@ -385,12 +399,14 @@ const styles = StyleSheet.create({
   },
   optionChip: {
     backgroundColor: "#FFFFFF",
-    borderRadius: 14,
+    borderRadius: 16,
+    minHeight: 52,
     paddingVertical: 14,
     paddingHorizontal: 12,
     borderWidth: 1,
     borderColor: "#E2E8F0",
     alignItems: "center",
+    justifyContent: "center",
     shadowColor: "#0F172A",
     shadowOpacity: 0.05,
     shadowRadius: 4,

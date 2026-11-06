@@ -13,13 +13,15 @@ export default function RootLayout() {
       <StatusBar style="auto" />
       <Stack screenOptions={{ headerShown: false }}>
         <Stack.Screen name="index" />
+        <Stack.Screen name="onboarding" />
+        <Stack.Screen name="login" />
         <Stack.Screen name="register" />
         <Stack.Screen name="forgot-password" />
         <Stack.Screen name="reset-password" />
         <Stack.Screen name="(tabs)" />
         <Stack.Screen
           name="lesson/[id]"
-          options={{ headerShown: true, title: "Lesson", presentation: "card" }}
+          options={{ headerShown: false, title: "Practice", presentation: "card" }}
         />
         <Stack.Screen
           name="lesson/ai-chat"

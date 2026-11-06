@@ -11,9 +11,10 @@ from app.models.lesson import Lesson
 from app.models.unit import Unit
 from app.models.user import User
 from app.models.user_progress import UserProgress
-from app.schemas.exercise import ExerciseCreate, ExerciseResponse, ExerciseUpdate
+from app.schemas.exercise import ExerciseCreate, ExerciseResponse, ExerciseSubmit, ExerciseSubmitResult, ExerciseUpdate
 from app.schemas.lesson import LessonCreate, LessonPathItem, LessonResponse, LessonUpdate
 from app.schemas.unit import UnitCreate, UnitResponse, UnitUpdate, UnitWithLessonsResponse
+from app.services.exercise_check import evaluate_exercise
 
 router = APIRouter()
 
@@ -267,6 +268,20 @@ def create_exercise(
     db.commit()
     db.refresh(exercise)
     return exercise
+
+
+@router.post("/exercises/{exercise_id}/submit", response_model=ExerciseSubmitResult)
+def submit_exercise(
+    exercise_id: int,
+    payload: ExerciseSubmit,
+    _user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> dict:
+    """Check a learner's answer and return the explanation."""
+    exercise = db.get(Exercise, exercise_id)
+    if exercise is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Exercise not found")
+    return evaluate_exercise(exercise, payload)
 
 
 @router.get("/exercises/{exercise_id}", response_model=ExerciseResponse)

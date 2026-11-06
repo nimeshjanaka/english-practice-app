@@ -1,83 +1,72 @@
-import { LinearGradient } from "expo-linear-gradient";
 import { router } from "expo-router";
+import { Check } from "lucide-react-native";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import {
-  ActivityIndicator,
-  Dimensions,
-  RefreshControl,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
-} from "react-native";
+import { ActivityIndicator, Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from "react-native";
+import Animated, { FadeIn, FadeInDown } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import Svg, { Path } from "react-native-svg";
 
 import api, { axios } from "../../src/api";
-import { UNITS_PATH } from "../../src/constants/api";
+import { COURSES_PATH } from "../../src/constants/api";
 
-type LessonPathItem = {
+type PathLesson = {
   id: number;
-  unit_id: number;
   title: string;
   icon_name: string;
   order_index: number;
   is_completed: boolean;
 };
 
-type UnitWithLessons = {
+type CoursePath = {
   id: number;
   title: string;
   order_index: number;
-  lessons: LessonPathItem[];
+  lessons: PathLesson[];
 };
 
 type LessonStatus = "completed" | "current" | "locked";
-type ZigAlign = "left" | "center" | "right";
 
-type PathLesson = LessonPathItem & {
-  status: LessonStatus;
-  unitTitle: string;
-};
+type DrawnLesson = PathLesson & { status: LessonStatus };
 
-const SCREEN_WIDTH = Dimensions.get("window").width;
-const NODE_SIZE = 80;
-const SIDE_INSET = SCREEN_WIDTH * 0.1;
-
-/** Zig-zag path: left → right → center → repeat */
-function zigAlign(index: number): ZigAlign {
-  const pattern: ZigAlign[] = ["left", "right", "center"];
-  return pattern[index % 3];
+function statusFor(lessons: PathLesson[]): DrawnLesson[] {
+  let opened = false;
+  return lessons.map((lesson) => {
+    if (lesson.is_completed) return { ...lesson, status: "completed" };
+    if (!opened) {
+      opened = true;
+      return { ...lesson, status: "current" };
+    }
+    return { ...lesson, status: "locked" };
+  });
 }
 
-function circleColor(status: LessonStatus): string {
-  if (status === "completed") return "#22C55E";
-  if (status === "current") return "#EAB308";
-  return "#9CA3AF";
+function ZigzagLink({ toRight }: { toRight: boolean }) {
+  const d = toRight ? "M28 4 C 70 4, 110 40, 152 40" : "M152 4 C 110 4, 70 40, 28 40";
+  return (
+    <Svg width={180} height={44} style={styles.link}>
+      <Path d={d} stroke="#D5D8E2" strokeWidth={3} strokeDasharray="6 7" fill="none" />
+    </Svg>
+  );
 }
 
 /**
- * Learning Path — real units/lessons from GET /api/content/units,
- * rendered as a Duolingo-style zig-zag of circular lesson buttons.
+ * Vertical zig-zag path. Lessons come from GET /api/v1/courses.
  */
 export default function LearningPathScreen() {
   const insets = useSafeAreaInsets();
-  const [units, setUnits] = useState<UnitWithLessons[]>([]);
+  const [courses, setCourses] = useState<CoursePath[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const loadUnits = useCallback(async () => {
+  const loadCourses = useCallback(async () => {
     setError(null);
     try {
-      // Axios instance attaches JWT from AsyncStorage automatically
-      const response = await api.get<UnitWithLessons[]>(UNITS_PATH);
-      setUnits(Array.isArray(response.data) ? response.data : []);
+      const response = await api.get<CoursePath[]>(COURSES_PATH);
+      setCourses(Array.isArray(response.data) ? response.data : []);
     } catch (err) {
-      if (axios.isAxiosError(err) && err.response?.status === 401) {
-        return;
-      }
-      setError("Could not load your learning path. Pull to refresh.");
+      if (axios.isAxiosError(err) && err.response?.status === 401) return;
+      setError("Could not load your path. Pull to refresh.");
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -85,340 +74,100 @@ export default function LearningPathScreen() {
   }, []);
 
   useEffect(() => {
-    void loadUnits();
-  }, [loadUnits]);
+    void loadCourses();
+  }, [loadCourses]);
 
-  /** Flatten units → lessons and mark completed / current / locked */
-  const pathLessons: PathLesson[] = useMemo(() => {
-    const flat: PathLesson[] = [];
-    const orderedUnits = [...units].sort(
-      (a, b) => a.order_index - b.order_index || a.id - b.id,
-    );
-
-    for (const unit of orderedUnits) {
-      const lessons = [...(unit.lessons ?? [])].sort(
-        (a, b) => a.order_index - b.order_index || a.id - b.id,
+  const lessons = useMemo(() => {
+    const flat = [...courses]
+      .sort((a, b) => a.order_index - b.order_index || a.id - b.id)
+      .flatMap((course) =>
+        [...(course.lessons ?? [])].sort((a, b) => a.order_index - b.order_index || a.id - b.id),
       );
-      for (const lesson of lessons) {
-        flat.push({
-          ...lesson,
-          unitTitle: unit.title,
-          status: "locked",
-        });
-      }
-    }
+    return statusFor(flat);
+  }, [courses]);
 
-    let currentAssigned = false;
-    return flat.map((lesson) => {
-      if (lesson.is_completed) {
-        return { ...lesson, status: "completed" as const };
-      }
-      if (!currentAssigned) {
-        currentAssigned = true;
-        return { ...lesson, status: "current" as const };
-      }
-      return { ...lesson, status: "locked" as const };
-    });
-  }, [units]);
-
-  /** Unit title shown in the blue header */
-  const headerUnitTitle = useMemo(() => {
-    const current = pathLessons.find((lesson) => lesson.status === "current");
-    if (current) return current.unitTitle;
-    if (pathLessons.length > 0) {
-      return pathLessons[pathLessons.length - 1].unitTitle;
-    }
-    if (units.length > 0) {
-      const first = [...units].sort(
-        (a, b) => a.order_index - b.order_index || a.id - b.id,
-      )[0];
-      return first.title;
-    }
-    return "Your Learning Path";
-  }, [pathLessons, units]);
-
-  function onLessonPress(lesson: PathLesson) {
-    if (lesson.status === "locked") return;
-    router.push(`/lesson/${lesson.id}`);
-  }
+  const courseTitle = courses[0]?.title ?? "Learning path";
 
   if (loading) {
     return (
       <View style={styles.centered}>
-        <ActivityIndicator size="large" color="#2563EB" />
+        <ActivityIndicator color="#3B82F6" />
       </View>
     );
   }
 
   return (
-    <View style={styles.screen}>
-      <LinearGradient
-        colors={["#1D4ED8", "#3B82F6", "#60A5FA"]}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-        style={[styles.header, { paddingTop: insets.top + 16 }]}
-      >
-        <Text style={styles.headerEyebrow}>Your Learning Path</Text>
-        <Text style={styles.headerTitle}>{headerUnitTitle}</Text>
-        <Text style={styles.headerMeta}>
-          {pathLessons.filter((l) => l.status === "completed").length} of{" "}
-          {pathLessons.length} lessons complete
-        </Text>
-      </LinearGradient>
-
+    <Animated.View entering={FadeIn.duration(420)} style={styles.screen}>
       <ScrollView
-        contentContainerStyle={styles.scrollContent}
+        contentContainerStyle={[styles.scroll, { paddingTop: insets.top + 24 }]}
         showsVerticalScrollIndicator={false}
         refreshControl={
           <RefreshControl
             refreshing={refreshing}
             onRefresh={() => {
               setRefreshing(true);
-              void loadUnits();
+              void loadCourses();
             }}
-            tintColor="#2563EB"
+            tintColor="#3B82F6"
           />
         }
       >
+        <Text style={styles.heading}>{courseTitle}</Text>
         {error ? <Text style={styles.error}>{error}</Text> : null}
+        {lessons.length === 0 && !error ? (
+          <Text style={styles.empty}>No published lessons on this course yet.</Text>
+        ) : null}
 
-        {pathLessons.length === 0 ? (
-          <Text style={styles.empty}>
-            No lessons yet. Confirm seed data exists, then pull to refresh.
-          </Text>
-        ) : (
-          <View style={styles.pathTrack}>
-            {pathLessons.map((lesson, index) => {
-              const align = zigAlign(index);
-              const isCurrent = lesson.status === "current";
-              const isLocked = lesson.status === "locked";
-
-              return (
-                <View key={lesson.id} style={styles.pathStep}>
-                  {index > 0 ? (
-                    <View
-                      style={[
-                        styles.connector,
-                        align === "left" && styles.connectorLeanLeft,
-                        align === "right" && styles.connectorLeanRight,
-                      ]}
-                    />
-                  ) : null}
-
-                  <View
-                    style={[
-                      styles.nodeWrap,
-                      align === "left" && styles.nodeLeft,
-                      align === "center" && styles.nodeCenter,
-                      align === "right" && styles.nodeRight,
-                    ]}
-                  >
-                    {isCurrent ? (
-                      <View style={styles.resumeBadge}>
-                        <Text style={styles.resumeBadgeText}>Resume</Text>
-                        <View style={styles.resumeArrow} />
-                      </View>
-                    ) : (
-                      <View style={styles.resumePlaceholder} />
-                    )}
-
-                    <TouchableOpacity
-                      activeOpacity={isLocked ? 1 : 0.85}
-                      disabled={isLocked}
-                      onPress={() => onLessonPress(lesson)}
-                      style={[
-                        styles.circle,
-                        { backgroundColor: circleColor(lesson.status) },
-                        isCurrent && styles.circleCurrent,
-                        isLocked && styles.circleLocked,
-                      ]}
-                      accessibilityRole="button"
-                      accessibilityLabel={`${lesson.title}, ${lesson.status}`}
-                    >
-                      <Text style={styles.circleIndex}>{index + 1}</Text>
-                    </TouchableOpacity>
-
-                    <Text
-                      style={[
-                        styles.lessonTitle,
-                        isLocked && styles.lessonTitleLocked,
-                      ]}
-                      numberOfLines={2}
-                    >
-                      {lesson.title}
-                    </Text>
-                  </View>
-                </View>
-              );
-            })}
-          </View>
-        )}
+        {lessons.map((lesson, index) => {
+          const onLeft = index % 2 === 0;
+          const open = lesson.status !== "locked";
+          return (
+            <Animated.View key={lesson.id} entering={FadeInDown.delay(index * 70).duration(480)}>
+              <View style={[styles.step, onLeft ? styles.stepLeft : styles.stepRight]}>
+                {!onLeft ? (
+                  <Text style={[styles.label, lesson.status === "locked" && styles.labelLocked]}>{lesson.title}</Text>
+                ) : null}
+                <Pressable
+                  disabled={!open}
+                  onPress={() => router.push(`/lesson/${lesson.id}/exercise`)}
+                  style={[
+                    styles.node,
+                    lesson.status === "completed" && styles.nodeDone,
+                    lesson.status === "current" && styles.nodeCurrent,
+                    lesson.status === "locked" && styles.nodeLocked,
+                  ]}
+                  accessibilityLabel={lesson.title}
+                >
+                  {lesson.status === "completed" ? <Check color="#FFFFFF" size={22} strokeWidth={3} /> : null}
+                </Pressable>
+                {onLeft ? (
+                  <Text style={[styles.label, lesson.status === "locked" && styles.labelLocked]}>{lesson.title}</Text>
+                ) : null}
+              </View>
+              {index < lessons.length - 1 ? <ZigzagLink toRight={onLeft} /> : null}
+            </Animated.View>
+          );
+        })}
       </ScrollView>
-    </View>
+    </Animated.View>
   );
 }
 
 const styles = StyleSheet.create({
-  screen: {
-    flex: 1,
-    backgroundColor: "#EFF6FF",
-  },
-  centered: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    backgroundColor: "#EFF6FF",
-  },
-  header: {
-    paddingHorizontal: 24,
-    paddingBottom: 28,
-    borderBottomLeftRadius: 24,
-    borderBottomRightRadius: 24,
-  },
-  headerEyebrow: {
-    color: "#DBEAFE",
-    fontSize: 13,
-    fontWeight: "700",
-    letterSpacing: 0.4,
-    textTransform: "uppercase",
-    marginBottom: 6,
-  },
-  headerTitle: {
-    color: "#FFFFFF",
-    fontSize: 28,
-    fontWeight: "800",
-  },
-  headerMeta: {
-    marginTop: 8,
-    color: "#DBEAFE",
-    fontSize: 14,
-    fontWeight: "600",
-  },
-  scrollContent: {
-    paddingTop: 28,
-    paddingBottom: 64,
-    flexGrow: 1,
-  },
-  error: {
-    color: "#DC2626",
-    textAlign: "center",
-    marginBottom: 16,
-    paddingHorizontal: 24,
-  },
-  empty: {
-    textAlign: "center",
-    color: "#64748B",
-    fontSize: 15,
-    paddingHorizontal: 24,
-    marginTop: 40,
-  },
-  pathTrack: {
-    width: "100%",
-    paddingHorizontal: 8,
-  },
-  pathStep: {
-    width: "100%",
-    alignItems: "center",
-    marginBottom: 4,
-  },
-  connector: {
-    width: 6,
-    height: 32,
-    borderRadius: 3,
-    backgroundColor: "#BFDBFE",
-    marginBottom: 4,
-  },
-  connectorLeanLeft: {
-    transform: [{ translateX: -30 }, { rotate: "-16deg" }],
-  },
-  connectorLeanRight: {
-    transform: [{ translateX: 30 }, { rotate: "16deg" }],
-  },
-  nodeWrap: {
-    width: SCREEN_WIDTH * 0.42,
-    alignItems: "center",
-    marginBottom: 20,
-  },
-  nodeLeft: {
-    alignSelf: "flex-start",
-    marginLeft: SIDE_INSET,
-  },
-  nodeCenter: {
-    alignSelf: "center",
-  },
-  nodeRight: {
-    alignSelf: "flex-end",
-    marginRight: SIDE_INSET,
-  },
-  resumeBadge: {
-    backgroundColor: "#1E3A8A",
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 8,
-    marginBottom: 10,
-    zIndex: 2,
-  },
-  resumeBadgeText: {
-    color: "#FFFFFF",
-    fontWeight: "800",
-    fontSize: 12,
-    letterSpacing: 0.2,
-  },
-  resumeArrow: {
-    position: "absolute",
-    bottom: -6,
-    left: "50%",
-    marginLeft: -6,
-    width: 0,
-    height: 0,
-    borderLeftWidth: 6,
-    borderRightWidth: 6,
-    borderTopWidth: 6,
-    borderLeftColor: "transparent",
-    borderRightColor: "transparent",
-    borderTopColor: "#1E3A8A",
-  },
-  resumePlaceholder: {
-    height: 32,
-    marginBottom: 10,
-  },
-  circle: {
-    width: NODE_SIZE,
-    height: NODE_SIZE,
-    borderRadius: NODE_SIZE / 2,
-    alignItems: "center",
-    justifyContent: "center",
-    borderWidth: 5,
-    borderColor: "#FFFFFF",
-    shadowColor: "#1E3A8A",
-    shadowOpacity: 0.18,
-    shadowRadius: 10,
-    shadowOffset: { width: 0, height: 5 },
-    elevation: 4,
-  },
-  circleCurrent: {
-    borderColor: "#FEF08A",
-    shadowColor: "#CA8A04",
-    shadowOpacity: 0.35,
-  },
-  circleLocked: {
-    opacity: 0.7,
-  },
-  circleIndex: {
-    color: "#FFFFFF",
-    fontSize: 24,
-    fontWeight: "800",
-  },
-  lessonTitle: {
-    marginTop: 10,
-    textAlign: "center",
-    fontSize: 14,
-    fontWeight: "700",
-    color: "#1E3A8A",
-    paddingHorizontal: 4,
-    lineHeight: 18,
-  },
-  lessonTitleLocked: {
-    color: "#64748B",
-  },
+  screen: { flex: 1, backgroundColor: "#F4F6FF" },
+  centered: { flex: 1, alignItems: "center", justifyContent: "center", backgroundColor: "#F4F6FF" },
+  scroll: { paddingHorizontal: 28, paddingBottom: 96 },
+  heading: { fontSize: 22, fontWeight: "800", color: "#1F2937", marginBottom: 28 },
+  error: { color: "#DC2626", marginBottom: 16 },
+  empty: { color: "#94A3B8", marginTop: 24 },
+  step: { flexDirection: "row", alignItems: "center", gap: 14, minHeight: 72 },
+  stepLeft: { justifyContent: "flex-start", paddingLeft: 12 },
+  stepRight: { justifyContent: "flex-end", paddingRight: 12 },
+  node: { width: 64, height: 64, borderRadius: 32, alignItems: "center", justifyContent: "center" },
+  nodeDone: { backgroundColor: "#22C55E" },
+  nodeCurrent: { backgroundColor: "#3B82F6", borderWidth: 4, borderColor: "#BFDBFE" },
+  nodeLocked: { backgroundColor: "#F3C3C8" },
+  label: { fontSize: 17, fontWeight: "800", color: "#1F2937", maxWidth: 150 },
+  labelLocked: { color: "#C5CAD3" },
+  link: { alignSelf: "center", marginVertical: 2 },
 });

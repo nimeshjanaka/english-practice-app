@@ -11,14 +11,7 @@ from app.config import get_settings
 from app.database import Base
 
 # Import all models so Base.metadata is fully populated for autogenerate
-from app.models import (  # noqa: F401
-    Exercise,
-    Lesson,
-    Payment,
-    Unit,
-    User,
-    UserProgress,
-)
+import app.models  # noqa: F401 — register curriculum + existing tables
 
 config = context.config
 

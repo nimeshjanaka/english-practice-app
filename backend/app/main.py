@@ -8,7 +8,12 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
-from app.routers import ai_chat, auth, content, payments, users
+from app.api.v1.endpoints import admin as admin_v1
+from app.api.v1.endpoints import admin_lessons as admin_lessons_v1
+from app.api.v1.endpoints import auth as auth_v1
+from app.api.v1.endpoints import curriculum as curriculum_v1
+from app.api.v1.endpoints import speaking as speaking_v1
+from app.routers import ai_chat, auth, content, curriculum_admin, payments, users
 
 app = FastAPI(
     title="English Development App API",
@@ -37,6 +42,12 @@ app.include_router(users.router, prefix="/api/users", tags=["Users"])
 app.include_router(content.router, prefix="/api/content", tags=["Content"])
 app.include_router(ai_chat.router, prefix="/api/ai", tags=["AI Chat"])
 app.include_router(payments.router, prefix="/api/payments", tags=["Payments"])
+app.include_router(curriculum_admin.router, prefix="/api/admin/curriculum", tags=["Curriculum CMS"])
+app.include_router(auth_v1.router, prefix="/api/v1/auth", tags=["Auth v1"])
+app.include_router(curriculum_v1.router, prefix="/api/v1", tags=["Curriculum v1"])
+app.include_router(admin_v1.router, prefix="/api/v1/admin", tags=["Admin v1"])
+app.include_router(admin_lessons_v1.router, prefix="/api/v1/admin", tags=["Admin v1"])
+app.include_router(speaking_v1.router, prefix="/api/v1/speaking", tags=["Speaking v1"])
 
 
 @app.get("/", tags=["Health"])

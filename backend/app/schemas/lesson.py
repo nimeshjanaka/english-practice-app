@@ -2,6 +2,8 @@
 
 from pydantic import BaseModel, ConfigDict, Field
 
+from app.schemas.exercise import ExerciseResponse
+
 
 class LessonCreate(BaseModel):
     """Payload to create a lesson."""
@@ -31,6 +33,13 @@ class LessonResponse(BaseModel):
     title: str
     icon_name: str
     order_index: int
+
+
+class LessonWithExercises(LessonResponse):
+    """Published lesson plus the exercises a learner can open."""
+
+    summary: str = ""
+    exercises: list[ExerciseResponse]
 
 
 class LessonPathItem(BaseModel):
