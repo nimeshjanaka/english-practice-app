@@ -1,5 +1,4 @@
 import { router, Stack, useLocalSearchParams } from "expo-router";
-import { ChevronLeft } from "lucide-react-native";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
@@ -13,6 +12,7 @@ import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { DragMatchExercise } from "../../../src/components/DragMatchExercise";
+import { LearningPathButton, LearningPathButtonSpacer } from "../../../src/components/LearningPathButton";
 import api, { axios } from "../../../src/api";
 import { lessonExercisesPath } from "../../../src/constants/api";
 
@@ -174,15 +174,9 @@ export default function LessonExerciseScreen() {
       <Stack.Screen options={{ headerShown: false }} />
       <View style={[styles.flex, { paddingTop: insets.top, paddingBottom: Math.max(insets.bottom, 12) }]}>
         <View style={styles.nav}>
-          <Pressable
-            onPress={() => router.back()}
-            style={styles.backBtn}
-            accessibilityLabel="Go back"
-          >
-            <ChevronLeft color="#0F172A" size={22} strokeWidth={2.6} />
-          </Pressable>
+          <LearningPathButton labeled />
           <Text style={styles.navTitle}>Practice</Text>
-          <View style={styles.backBtn} />
+          <LearningPathButtonSpacer />
         </View>
 
         {error ? <Text style={styles.error}>{error}</Text> : null}
@@ -231,13 +225,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "space-between",
     paddingHorizontal: 16,
-  },
-  backBtn: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    alignItems: "center",
-    justifyContent: "center",
   },
   navTitle: {
     fontSize: 17,

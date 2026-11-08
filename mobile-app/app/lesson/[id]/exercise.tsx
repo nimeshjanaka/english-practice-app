@@ -1,5 +1,5 @@
 import { router, useLocalSearchParams } from "expo-router";
-import { Check, ChevronLeft, X } from "lucide-react-native";
+import { Check, X } from "lucide-react-native";
 import { useCallback, useEffect, useState } from "react";
 import {
   ActivityIndicator,
@@ -13,6 +13,7 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import api, { axios } from "../../../src/api";
+import { LearningPathButton } from "../../../src/components/LearningPathButton";
 import { exerciseAttemptPath, lessonExercisesPath } from "../../../src/constants/api";
 
 const MAX_TRIES = 3;
@@ -281,9 +282,7 @@ export default function ExercisePlayerScreen() {
   return (
     <View style={[styles.screen, { paddingTop: insets.top, paddingBottom: Math.max(insets.bottom, 12) }]}>
       <View style={styles.nav}>
-        <Pressable onPress={() => router.back()} style={styles.backBtn} accessibilityLabel="Go back">
-          <ChevronLeft color="#0F172A" size={22} strokeWidth={2.6} />
-        </Pressable>
+        <LearningPathButton labeled />
         <Text style={styles.navTitle}>Exercise</Text>
         <Text style={styles.count}>{exercises.length ? `${index + 1}/${exercises.length}` : ""}</Text>
       </View>
@@ -496,10 +495,9 @@ export default function ExercisePlayerScreen() {
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: "#F8FAFC" },
-  nav: { height: 52, flexDirection: "row", alignItems: "center", paddingHorizontal: 16 },
-  backBtn: { width: 40, height: 40, borderRadius: 20, alignItems: "center", justifyContent: "center" },
+  nav: { height: 52, flexDirection: "row", alignItems: "center", paddingHorizontal: 16, gap: 8 },
   navTitle: { flex: 1, textAlign: "center", fontSize: 17, fontWeight: "800", color: "#0F172A" },
-  count: { width: 40, textAlign: "right", color: "#94A3B8", fontWeight: "700" },
+  count: { minWidth: 40, textAlign: "right", color: "#94A3B8", fontWeight: "700" },
   loader: { marginTop: 24 },
   error: { color: "#DC2626", marginHorizontal: 20, marginTop: 8 },
   empty: { margin: 24, textAlign: "center", color: "#64748B" },

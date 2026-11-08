@@ -33,6 +33,7 @@ import Animated, {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { AiSpeakOrb } from "../../src/components/AiSpeakOrb";
+import { LearningPathButton } from "../../src/components/LearningPathButton";
 import api, { axios } from "../../src/api";
 import {
   AI_CHAT_PATH,
@@ -910,7 +911,14 @@ export default function LessonAiChatScreen() {
 
   return (
     <>
-      <Stack.Screen options={{ title: "Talk with AI KIT", headerShown: true }} />
+      <Stack.Screen
+        options={{
+          title: "Talk with AI KIT",
+          headerShown: true,
+          headerLeft: () => <LearningPathButton labeled />,
+          headerBackVisible: false,
+        }}
+      />
       <View style={[styles.screen, { paddingBottom: Math.max(insets.bottom, 16) }]}>
         <View
           style={[

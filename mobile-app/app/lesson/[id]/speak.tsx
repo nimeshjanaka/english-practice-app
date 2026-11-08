@@ -8,7 +8,7 @@ import {
 } from "expo-audio";
 import { LinearGradient } from "expo-linear-gradient";
 import { router, useLocalSearchParams } from "expo-router";
-import { ChevronLeft, Mic, Sparkles } from "lucide-react-native";
+import { Mic, Sparkles } from "lucide-react-native";
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
@@ -32,6 +32,7 @@ import Animated, {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import api, { axios } from "../../../src/api";
+import { LearningPathButton, goToLearningPath } from "../../../src/components/LearningPathButton";
 import { COURSES_PATH, getApiBaseUrl, speakingSessionEndPath } from "../../../src/constants/api";
 
 /** Speaking practice ends after 3 minutes. */
@@ -400,7 +401,7 @@ export default function SpeakScreen() {
       router.replace(`/lesson/${nextLessonId}/exercise`);
       return;
     }
-    router.replace("/(tabs)");
+    goToLearningPath();
   }
 
   const timerExpired = secondsLeft <= 0;
@@ -421,9 +422,7 @@ export default function SpeakScreen() {
       <LinearGradient colors={["#EEF3FF", "#F8FAFC", "#FFFFFF"]} style={StyleSheet.absoluteFill} />
 
       <View style={[styles.nav, { paddingTop: insets.top + 6 }]}>
-        <Pressable onPress={() => router.back()} style={styles.backBtn} accessibilityLabel="Go back">
-          <ChevronLeft color="#0F172A" size={22} strokeWidth={2.6} />
-        </Pressable>
+        <LearningPathButton labeled />
         <View style={styles.navCenter}>
           <Text style={styles.navTitle}>Speaking</Text>
           <Text style={styles.navSubtitle}>3-minute practice · then next lesson</Text>
@@ -574,14 +573,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingBottom: 10,
   },
-  backBtn: {
-    width: 42,
-    height: 42,
-    borderRadius: 21,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  navCenter: { flex: 1, alignItems: "center" },
+  navCenter: { flex: 1, alignItems: "center", paddingHorizontal: 6 },
   navTitle: { fontSize: 18, fontWeight: "800", color: "#0F172A" },
   navSubtitle: { marginTop: 2, fontSize: 12, fontWeight: "600", color: "#64748B" },
   timerPill: {
