@@ -58,6 +58,28 @@ class UserResponse(BaseModel):
     created_at: datetime
 
 
+class UserProfileUpdate(BaseModel):
+    """Onboarding fields the mobile app can patch after signup."""
+
+    name: str | None = Field(default=None, max_length=120)
+    level: str | None = Field(default=None, max_length=16)
+    goals: str | list[str] | None = None
+    preferred_voice: str | None = Field(default=None, max_length=64)
+
+
+class UserProfileResponse(BaseModel):
+    """Saved onboarding profile."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    user_id: int
+    name: str
+    level: str
+    goals: str
+    preferred_voice: str
+    updated_at: datetime
+
+
 class Token(BaseModel):
     """JWT access token returned after successful login/register."""
 

@@ -21,8 +21,10 @@ class Settings(BaseSettings):
     # PostgreSQL — must match your local/production DB
     DATABASE_URL: str = "postgresql://nimeshjanaka@localhost:5432/englishapp"
 
-    # Groq API key for Whisper STT, Llama chat, and PlayAI TTS (set in .env)
+    # Groq API key for Whisper STT, chat, and TTS (set in .env)
     GROQ_API_KEY: str = ""
+    # Chat model id your Groq org can access (override in .env if needed)
+    GROQ_CHAT_MODEL: str = "openai/gpt-oss-20b"
 
     # OpenAI key for GPT-4o lesson generation. Voice chat uses Groq.
     OPENAI_API_KEY: str = ""

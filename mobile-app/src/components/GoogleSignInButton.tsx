@@ -16,13 +16,15 @@ WebBrowser.maybeCompleteAuthSession();
 
 type Props = {
   onError: (message: string) => void;
+  /** Where to land after a successful Google session. */
+  afterAuthHref?: "/(tabs)" | "/onboarding/complete";
 };
 
 /**
  * Google Sign-In via Expo AuthSession.
  * Hidden until `extra.googleWebClientId` is set in app.json.
  */
-export function GoogleSignInButton({ onError }: Props) {
+export function GoogleSignInButton({ onError, afterAuthHref = "/(tabs)" }: Props) {
   const clientId = getGoogleWebClientId().trim();
   const [busy, setBusy] = useState(false);
 
@@ -49,10 +51,10 @@ export function GoogleSignInButton({ onError }: Props) {
     }
 
     setBusy(true);
-    void loginWithGoogleIdToken(idToken)
+    void loginWithGoogleIdToken(idToken, afterAuthHref)
       .catch((err) => onError(authErrorMessage(err, "Google sign-in failed.")))
       .finally(() => setBusy(false));
-  }, [clientId, response, onError]);
+  }, [afterAuthHref, clientId, response, onError]);
 
   // Don't show the button until Google is configured (avoids the error message)
   if (!clientId) {

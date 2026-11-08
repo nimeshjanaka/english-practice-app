@@ -16,18 +16,27 @@ from app.models.curriculum import (
 from app.models.exercise import Exercise
 from app.models.lesson import Lesson
 from app.models.payment import Payment
+from app.models.progress import ExerciseAttempt, LearningSession, LessonProgress
+from app.models.speaking import SpeakingMessage, SpeakingSession
 from app.models.unit import Unit
 from app.models.user import User, UserRole
+from app.models.user_profile import UserProfile
 from app.models.user_progress import UserProgress
 
 __all__ = [
     "User",
     "UserRole",
+    "UserProfile",
     "Unit",
     "Lesson",
     "Exercise",
     "UserProgress",
     "Payment",
+    "SpeakingSession",
+    "SpeakingMessage",
+    "ExerciseAttempt",
+    "LessonProgress",
+    "LearningSession",
     "CefrLevel",
     "Course",
     "LessonSection",

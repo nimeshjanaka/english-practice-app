@@ -6,7 +6,7 @@ import {
 } from "expo-audio";
 import { router } from "expo-router";
 import LottieView from "lottie-react-native";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { StyleSheet, Text, View } from "react-native";
 import Animated, {
   Easing,
@@ -19,17 +19,19 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { TOKEN_KEY } from "../src/constants/api";
 import { ONBOARDING_SEEN_KEY } from "../src/constants/onboarding";
 
-/** Replace this JSON anytime with your own AI-robot Lottie file. */
-const AI_ROBOT_LOTTIE = require("../assets/lottie/ai-robot.json");
+/**
+ * Placeholder robot animation. Swap this URL for the final YayTalk Lottie file.
+ * The bundled robot is used if the URL cannot be downloaded.
+ */
+const PLACEHOLDER_ROBOT_LOTTIE = "https://assets1.lottiefiles.com/packages/lf20_1pxqjqps.json";
+const LOCAL_ROBOT_LOTTIE = require("../assets/lottie/ai-robot.json");
 const WELCOME_AUDIO = require("../assets/audio/welcome.m4a");
 
-const SPLASH_MIN_MS = 3000;
+const SPLASH_MAX_MS = 3000;
+const ANIMATION_MS = 1100;
 
 /**
- * Animated splash — yaytalk blue, AI robot Lottie (fade + scale),
- * welcome audio (expo-audio), then Onboarding (or Tabs if signed in).
- *
- * Note: expo-av is not available in current Expo Go — use expo-audio instead.
+ * Entry splash. Playback uses expo-audio because expo-av is not available in this Expo SDK.
  */
 export default function SplashScreen() {
   const insets = useSafeAreaInsets();
@@ -37,6 +39,9 @@ export default function SplashScreen() {
   const playerRef = useRef<AudioPlayer | null>(null);
   const finishWatchRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const navigatedRef = useRef(false);
+  const [lottieSource, setLottieSource] = useState<{ uri: string } | number>({
+    uri: PLACEHOLDER_ROBOT_LOTTIE,
+  });
 
   const opacity = useSharedValue(0);
   const scale = useSharedValue(0.72);
@@ -48,10 +53,11 @@ export default function SplashScreen() {
 
   useEffect(() => {
     let cancelled = false;
-    let minTimer: ReturnType<typeof setTimeout> | null = null;
-    let audioSafetyTimer: ReturnType<typeof setTimeout> | null = null;
+    let maxTimer: ReturnType<typeof setTimeout> | null = null;
+    let animationTimer: ReturnType<typeof setTimeout> | null = null;
     let audioDone = false;
-    let minDone = false;
+    let animationDone = false;
+    let forced = false;
 
     const clearFinishWatch = () => {
       if (finishWatchRef.current) {
@@ -62,7 +68,8 @@ export default function SplashScreen() {
 
     const goNext = async () => {
       if (cancelled || navigatedRef.current) return;
-      if (!audioDone || !minDone) return;
+      const introFinished = animationDone && audioDone;
+      if (!introFinished && !forced) return;
       navigatedRef.current = true;
 
       try {
@@ -74,9 +81,9 @@ export default function SplashScreen() {
         }
         const seen = await AsyncStorage.getItem(ONBOARDING_SEEN_KEY);
         if (cancelled) return;
-        router.replace(seen === "1" ? "/login" : "/onboarding");
+        router.replace(seen === "1" ? "/login" : "/onboarding/welcome");
       } catch {
-        if (!cancelled) router.replace("/onboarding");
+        if (!cancelled) router.replace("/onboarding/welcome");
       }
     };
 
@@ -86,16 +93,20 @@ export default function SplashScreen() {
         easing: Easing.out(Easing.cubic),
       });
       scale.value = withTiming(1, {
-        duration: 1100,
+        duration: ANIMATION_MS,
         easing: Easing.out(Easing.cubic),
       });
-
       lottieRef.current?.play();
 
-      minTimer = setTimeout(() => {
-        minDone = true;
+      animationTimer = setTimeout(() => {
+        animationDone = true;
         void goNext();
-      }, SPLASH_MIN_MS);
+      }, ANIMATION_MS);
+
+      maxTimer = setTimeout(() => {
+        forced = true;
+        void goNext();
+      }, SPLASH_MAX_MS);
 
       try {
         await setAudioModeAsync({
@@ -128,11 +139,6 @@ export default function SplashScreen() {
             void goNext();
           }
         }, 200);
-
-        audioSafetyTimer = setTimeout(() => {
-          audioDone = true;
-          void goNext();
-        }, SPLASH_MIN_MS + 2500);
       } catch {
         audioDone = true;
         void goNext();
@@ -143,8 +149,8 @@ export default function SplashScreen() {
 
     return () => {
       cancelled = true;
-      if (minTimer) clearTimeout(minTimer);
-      if (audioSafetyTimer) clearTimeout(audioSafetyTimer);
+      if (maxTimer) clearTimeout(maxTimer);
+      if (animationTimer) clearTimeout(animationTimer);
       clearFinishWatch();
       const player = playerRef.current;
       playerRef.current = null;
@@ -164,10 +170,11 @@ export default function SplashScreen() {
       <Animated.View style={[styles.robotWrap, robotStyle]}>
         <LottieView
           ref={lottieRef}
-          source={AI_ROBOT_LOTTIE}
+          source={lottieSource}
           autoPlay
           loop
           style={styles.lottie}
+          onAnimationFailure={() => setLottieSource(LOCAL_ROBOT_LOTTIE)}
         />
       </Animated.View>
 
@@ -175,7 +182,7 @@ export default function SplashScreen() {
         <Text style={styles.brandYay}>yay</Text>
         <Text style={styles.brandTalk}>talk</Text>
       </Text>
-      <Text style={styles.tagline}>Welcome to our English app</Text>
+      <Text style={styles.tagline}>Welcome to YayTalk</Text>
     </View>
   );
 }
@@ -183,7 +190,7 @@ export default function SplashScreen() {
 const styles = StyleSheet.create({
   screen: {
     flex: 1,
-    backgroundColor: "#2A84F8",
+    backgroundColor: "#4A55E1",
     alignItems: "center",
     justifyContent: "center",
   },

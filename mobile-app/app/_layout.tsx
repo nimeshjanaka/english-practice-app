@@ -4,6 +4,8 @@ import "react-native-reanimated";
 import { Stack } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 
+import { OnboardingProvider } from "../src/state/OnboardingContext";
+
 /**
  * Root layout — Stack Navigator for auth screens + main tabs + lesson detail.
  */
@@ -11,6 +13,7 @@ export default function RootLayout() {
   return (
     <>
       <StatusBar style="auto" />
+      <OnboardingProvider>
       <Stack screenOptions={{ headerShown: false }}>
         <Stack.Screen name="index" />
         <Stack.Screen name="onboarding" />
@@ -32,6 +35,7 @@ export default function RootLayout() {
           options={{ headerShown: true, title: "Talk with AI", presentation: "card" }}
         />
       </Stack>
+      </OnboardingProvider>
     </>
   );
 }

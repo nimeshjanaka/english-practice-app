@@ -4,9 +4,12 @@ import { router } from "expo-router";
 import api, { axios } from "../api";
 import { AUTH, TOKEN_KEY } from "../constants/api";
 
-export async function saveTokenAndEnterApp(accessToken: string): Promise<void> {
+export async function saveTokenAndEnterApp(
+  accessToken: string,
+  href: "/(tabs)" | "/onboarding/complete" = "/(tabs)",
+): Promise<void> {
   await AsyncStorage.setItem(TOKEN_KEY, accessToken);
-  router.replace("/(tabs)");
+  router.replace(href);
 }
 
 export function authErrorMessage(err: unknown, fallback: string): string {
@@ -14,13 +17,16 @@ export function authErrorMessage(err: unknown, fallback: string): string {
     const detail = err.response?.data?.detail;
     if (typeof detail === "string") return detail;
     if (err.code === "ERR_NETWORK") {
-      return "Cannot reach the API. Is the backend running on port 8000?";
+      return "Cannot reach the API. Check EXPO_PUBLIC_API_URL and that the backend is running.";
     }
   }
   return fallback;
 }
 
-export async function loginWithGoogleIdToken(idToken: string): Promise<void> {
+export async function loginWithGoogleIdToken(
+  idToken: string,
+  href: "/(tabs)" | "/onboarding/complete" = "/(tabs)",
+): Promise<void> {
   const response = await api.post(AUTH.google, {
     id_token: idToken,
   });
@@ -28,5 +34,5 @@ export async function loginWithGoogleIdToken(idToken: string): Promise<void> {
   if (!accessToken) {
     throw new Error("Google sign-in succeeded but no token was returned.");
   }
-  await saveTokenAndEnterApp(accessToken);
+  await saveTokenAndEnterApp(accessToken, href);
 }

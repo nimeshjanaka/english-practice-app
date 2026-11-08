@@ -34,7 +34,12 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { AiSpeakOrb } from "../../src/components/AiSpeakOrb";
 import api, { axios } from "../../src/api";
-import { AI_CHAT_PATH, AI_SPEAK_PATH, getApiBaseUrl } from "../../src/constants/api";
+import {
+  AI_CHAT_PATH,
+  AI_SPEAK_PATH,
+  PROGRESS_SESSION_END_PATH,
+  getApiBaseUrl,
+} from "../../src/constants/api";
 
 const SESSION_SECONDS = 4 * 60;
 /** Time the learner has to answer each AI KIT question (seconds). */
@@ -192,6 +197,8 @@ export default function LessonAiChatScreen() {
   const questionIndexRef = useRef(0);
   const awaitingAnswerRef = useRef(false);
   const busyRef = useRef(false);
+  const sessionStartedAtRef = useRef<number | null>(null);
+  const sessionReportedRef = useRef(false);
 
   const timerExpired = secondsLeft <= 0;
   const recording = recorderState.isRecording || isHoldingMic;
@@ -360,6 +367,24 @@ export default function LessonAiChatScreen() {
       }
     }
   }, [timerExpired, phase]);
+
+  useEffect(() => {
+    if (phase !== "finished" || sessionReportedRef.current) return;
+    sessionReportedRef.current = true;
+    const startedAt = sessionStartedAtRef.current;
+    const durationSeconds = startedAt
+      ? Math.max(1, Math.round((Date.now() - startedAt) / 1000))
+      : Math.max(1, SESSION_SECONDS - secondsLeft);
+    void api
+      .post(PROGRESS_SESSION_END_PATH, {
+        lesson_id: lessonId ? Number(lessonId) : null,
+        duration_seconds: durationSeconds,
+        session_type: "ai_chat",
+      })
+      .catch(() => {
+        // Progress write is best-effort.
+      });
+  }, [phase, lessonId, secondsLeft]);
 
   const clearFinishWatch = useCallback(() => {
     if (finishWatchRef.current) {
@@ -850,6 +875,8 @@ export default function LessonAiChatScreen() {
     setError(null);
     setSecondsLeft(SESSION_SECONDS);
     setPhase("active");
+    sessionStartedAtRef.current = Date.now();
+    sessionReportedRef.current = false;
     questionIndexRef.current = 0;
     setQuestionIndex(0);
     await askQuestionAt(0, false);

@@ -8,7 +8,6 @@ function getDevHost(): string | null {
   const candidates = [
     Constants.expoConfig?.hostUri,
     Constants.expoGoConfig?.debuggerHost,
-    // Legacy manifests
     (Constants as { manifest?: { debuggerHost?: string } }).manifest?.debuggerHost,
     (Constants as { manifest2?: { extra?: { expoGo?: { debuggerHost?: string } } } })
       .manifest2?.extra?.expoGo?.debuggerHost,
@@ -25,22 +24,36 @@ function getDevHost(): string | null {
 }
 
 /**
- * Backend base URL.
- * - iOS Simulator / web: localhost
- * - Physical device (Expo Go): Mac LAN IP from Expo (phone cannot use localhost)
+ * Backend base URL from EXPO_PUBLIC_API_URL.
  *
- * Override anytime with EXPO_PUBLIC_API_URL, e.g. http://192.168.1.10:8000
+ * On a physical device, if the env URL uses localhost, rewrite the host to the
+ * Expo LAN IP so the phone can reach your Mac (localhost on the phone is itself).
  */
 export function getApiBaseUrl(): string {
   const fromEnv = process.env.EXPO_PUBLIC_API_URL?.trim();
-  if (fromEnv) return fromEnv.replace(/\/$/, "");
-
-  const host = getDevHost();
-  if (Platform.OS !== "web" && host) {
-    return `http://${host}:8000`;
+  if (!fromEnv) {
+    throw new Error(
+      "EXPO_PUBLIC_API_URL is missing. Add it to mobile-app/.env (see .env.example).",
+    );
   }
 
-  return "http://localhost:8000";
+  const cleaned = fromEnv.replace(/\/$/, "");
+
+  try {
+    const parsed = new URL(cleaned);
+    const isLoopback = parsed.hostname === "localhost" || parsed.hostname === "127.0.0.1";
+    if (Platform.OS !== "web" && isLoopback) {
+      const lanHost = getDevHost();
+      if (lanHost) {
+        parsed.hostname = lanHost;
+        return parsed.toString().replace(/\/$/, "");
+      }
+    }
+  } catch {
+    // Fall through and return the raw env value.
+  }
+
+  return cleaned;
 }
 
 export const TOKEN_KEY = "access_token";
@@ -71,6 +84,20 @@ export function lessonExercisesPath(lessonId: string | number): string {
 
 export function exerciseSubmitPath(exerciseId: string | number): string {
   return `/api/content/exercises/${exerciseId}/submit`;
+}
+
+export function exerciseAttemptPath(exerciseId: string | number): string {
+  return `/api/v1/exercises/${exerciseId}/attempts`;
+}
+
+/** Profile overview: lessons completed, speaking time, streak. */
+export const PROGRESS_OVERVIEW_PATH = "/api/v1/progress/overview";
+
+/** Close an AI chat / practice block and store duration. */
+export const PROGRESS_SESSION_END_PATH = "/api/v1/progress/sessions/end";
+
+export function speakingSessionEndPath(sessionId: string): string {
+  return `/api/v1/speaking/sessions/${sessionId}/end`;
 }
 
 /** Google Web Client ID — set in app.json extra or EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID */

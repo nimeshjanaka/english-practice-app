@@ -82,6 +82,15 @@ def user_headers(client: TestClient) -> dict[str, str]:
 
 
 @pytest.fixture()
+def test_user(client: TestClient, user_headers: dict[str, str], db_session: Session) -> User:
+    """The learner created by user_headers."""
+    _ = user_headers
+    user = db_session.scalar(select(User).where(User.email == "learner@example.com"))
+    assert user is not None
+    return user
+
+
+@pytest.fixture()
 def admin_headers(client: TestClient, db_session: Session) -> dict[str, str]:
     """Auth headers for an admin account."""
     email = "admin@example.com"

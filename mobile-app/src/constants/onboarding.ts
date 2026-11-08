@@ -15,6 +15,8 @@ export type OnboardingProfile = {
   level?: string;
   /** Placement-quiz estimated CEFR (may override level). */
   testedLevel?: string;
+  /** Answer chosen on the short level-test screen. */
+  levelTestAnswer?: string;
   goal?: string;
   situations?: string[];
   focus?: string;

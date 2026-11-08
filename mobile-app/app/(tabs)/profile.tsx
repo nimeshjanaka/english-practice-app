@@ -1,7 +1,7 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { router, useFocusEffect } from "expo-router";
-import { User } from "lucide-react-native";
-import { useCallback, useMemo, useState } from "react";
+import { Flame, GraduationCap, Mic2, User } from "lucide-react-native";
+import { useCallback, useMemo, useState, type ReactNode } from "react";
 import {
   ActivityIndicator,
   ScrollView,
@@ -13,7 +13,7 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import api from "../../src/api";
-import { AUTH, TOKEN_KEY, UNITS_PATH } from "../../src/constants/api";
+import { AUTH, PROGRESS_OVERVIEW_PATH, TOKEN_KEY } from "../../src/constants/api";
 
 type MeResponse = {
   id: number;
@@ -21,14 +21,14 @@ type MeResponse = {
   role?: string;
 };
 
-type LessonPathItem = {
-  id: number;
-  is_completed: boolean;
+type ProgressOverview = {
+  lessons_completed: number;
+  total_speaking_seconds: number;
+  current_streak: number;
 };
 
-type UnitWithLessons = {
-  id: number;
-  lessons: LessonPathItem[];
+type ProfileResponse = {
+  name?: string;
 };
 
 function displayNameFromEmail(email: string): string {
@@ -41,31 +41,44 @@ function displayNameFromEmail(email: string): string {
     .join(" ");
 }
 
+function formatSpeakingTime(totalSeconds: number): string {
+  const seconds = Math.max(0, Math.floor(totalSeconds));
+  const hours = Math.floor(seconds / 3600);
+  const minutes = Math.floor((seconds % 3600) / 60);
+  const rem = seconds % 60;
+  if (hours > 0) return `${hours}h ${minutes}m`;
+  if (minutes > 0) return `${minutes}m ${rem}s`;
+  return `${rem}s`;
+}
+
 /**
- * Profile tab — user email, name placeholder, lessons progress, logout.
+ * Profile tab — overview from GET /api/v1/progress/overview.
  */
 export default function ProfileScreen() {
   const insets = useSafeAreaInsets();
-  const [email, setEmail] = useState<string>("");
-  const [completed, setCompleted] = useState(0);
-  const [total, setTotal] = useState(0);
+  const [email, setEmail] = useState("");
+  const [name, setName] = useState("");
+  const [lessonsCompleted, setLessonsCompleted] = useState(0);
+  const [speakingSeconds, setSpeakingSeconds] = useState(0);
+  const [streak, setStreak] = useState(0);
   const [loading, setLoading] = useState(true);
 
   const loadProfile = useCallback(async () => {
     setLoading(true);
     try {
-      const [meRes, unitsRes] = await Promise.all([
+      const [meRes, overviewRes, profileRes] = await Promise.all([
         api.get<MeResponse>(AUTH.me),
-        api.get<UnitWithLessons[]>(UNITS_PATH),
+        api.get<ProgressOverview>(PROGRESS_OVERVIEW_PATH),
+        api.get<ProfileResponse>("/api/v1/users/me/profile").catch(() => null),
       ]);
 
       setEmail(meRes.data?.email ?? "");
-
-      const lessons = (unitsRes.data ?? []).flatMap((unit) => unit.lessons ?? []);
-      setTotal(lessons.length);
-      setCompleted(lessons.filter((lesson) => lesson.is_completed).length);
+      setName((profileRes?.data?.name || "").trim());
+      setLessonsCompleted(overviewRes.data?.lessons_completed ?? 0);
+      setSpeakingSeconds(overviewRes.data?.total_speaking_seconds ?? 0);
+      setStreak(overviewRes.data?.current_streak ?? 0);
     } catch {
-      // Interceptor handles 401; keep placeholders on other errors
+      // Interceptor handles 401; keep last known values otherwise.
     } finally {
       setLoading(false);
     }
@@ -77,12 +90,10 @@ export default function ProfileScreen() {
     }, [loadProfile]),
   );
 
-  const namePlaceholder = useMemo(
-    () => (email ? displayNameFromEmail(email) : "Learner"),
-    [email],
-  );
-
-  const progressPercent = total > 0 ? Math.round((completed / total) * 100) : 0;
+  const displayName = useMemo(() => {
+    if (name) return name;
+    return email ? displayNameFromEmail(email) : "Learner";
+  }, [email, name]);
 
   async function handleLogout() {
     await AsyncStorage.removeItem(TOKEN_KEY);
@@ -104,31 +115,30 @@ export default function ProfileScreen() {
         </View>
       </View>
 
-      {loading ? (
-        <ActivityIndicator color="#2563EB" style={{ marginBottom: 16 }} />
-      ) : null}
+      {loading ? <ActivityIndicator color="#2563EB" style={{ marginBottom: 16 }} /> : null}
 
-      <Text style={styles.name}>{namePlaceholder}</Text>
+      <Text style={styles.name}>{displayName}</Text>
       <Text style={styles.email}>{email || "Loading email…"}</Text>
 
-      <View style={styles.progressCard}>
-        <Text style={styles.progressLabel}>Your progress</Text>
-        <Text style={styles.progressValue}>
-          Lessons Completed: {completed}
-        </Text>
-        <View style={styles.progressBarTrack}>
-          <View
-            style={[
-              styles.progressBarFill,
-              { width: `${Math.min(100, Math.max(0, progressPercent))}%` },
-            ]}
+      <View style={styles.statsCard}>
+        <Text style={styles.statsLabel}>Your progress</Text>
+        <View style={styles.statsRow}>
+          <StatTile
+            icon={<GraduationCap color="#1D4ED8" size={22} />}
+            label="Lessons completed"
+            value={String(lessonsCompleted)}
+          />
+          <StatTile
+            icon={<Mic2 color="#0F766E" size={22} />}
+            label="Speaking time"
+            value={formatSpeakingTime(speakingSeconds)}
+          />
+          <StatTile
+            icon={<Flame color="#C2410C" size={22} />}
+            label="Current streak"
+            value={`${streak} day${streak === 1 ? "" : "s"}`}
           />
         </View>
-        <Text style={styles.progressHint}>
-          {total > 0
-            ? `${completed} of ${total} lessons finished (${progressPercent}%)`
-            : "No lessons yet — start your learning path"}
-        </Text>
       </View>
 
       <TouchableOpacity
@@ -141,6 +151,24 @@ export default function ProfileScreen() {
         <Text style={styles.logoutText}>Logout</Text>
       </TouchableOpacity>
     </ScrollView>
+  );
+}
+
+function StatTile({
+  icon,
+  label,
+  value,
+}: {
+  icon: ReactNode;
+  label: string;
+  value: string;
+}) {
+  return (
+    <View style={styles.statTile}>
+      <View style={styles.statIcon}>{icon}</View>
+      <Text style={styles.statValue}>{value}</Text>
+      <Text style={styles.statLabel}>{label}</Text>
+    </View>
   );
 }
 
@@ -183,45 +211,53 @@ const styles = StyleSheet.create({
     color: "#64748B",
     marginBottom: 24,
   },
-  progressCard: {
+  statsCard: {
     width: "100%",
     backgroundColor: "#FFFFFF",
     borderRadius: 16,
-    padding: 20,
+    padding: 18,
     borderWidth: 1,
     borderColor: "#BFDBFE",
     marginBottom: 28,
   },
-  progressLabel: {
+  statsLabel: {
     fontSize: 12,
     fontWeight: "800",
     color: "#2563EB",
     textTransform: "uppercase",
     letterSpacing: 0.4,
-    marginBottom: 8,
-  },
-  progressValue: {
-    fontSize: 18,
-    fontWeight: "700",
-    color: "#1E3A8A",
     marginBottom: 14,
   },
-  progressBarTrack: {
-    height: 10,
-    borderRadius: 999,
-    backgroundColor: "#DBEAFE",
-    overflow: "hidden",
+  statsRow: {
+    gap: 12,
+  },
+  statTile: {
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: "#E2E8F0",
+    backgroundColor: "#F8FAFC",
+    paddingHorizontal: 14,
+    paddingVertical: 14,
+  },
+  statIcon: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: "#FFFFFF",
+    alignItems: "center",
+    justifyContent: "center",
     marginBottom: 10,
   },
-  progressBarFill: {
-    height: "100%",
-    borderRadius: 999,
-    backgroundColor: "#22C55E",
+  statValue: {
+    fontSize: 22,
+    fontWeight: "800",
+    color: "#0F172A",
+    marginBottom: 2,
   },
-  progressHint: {
+  statLabel: {
     fontSize: 13,
-    color: "#64748B",
     fontWeight: "600",
+    color: "#64748B",
   },
   logoutButton: {
     width: "100%",

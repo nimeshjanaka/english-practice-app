@@ -30,7 +30,7 @@ export default function LevelScreen() {
       level,
       learnLanguage: "en",
     });
-    router.push("/onboarding/goals-intro");
+    router.push("/onboarding/level-test");
   }
 
   return (

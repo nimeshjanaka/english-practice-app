@@ -2,55 +2,38 @@ import { router } from "expo-router";
 import { useEffect, useState } from "react";
 import { ScrollView, StyleSheet } from "react-native";
 
-import {
-  ContinueButton,
-  OnboardingChrome,
-  OptionButton,
-} from "../../src/components/onboarding/OnboardingChrome";
+import { OnboardingLayout } from "../../src/components/onboarding/OnboardingLayout";
+import { OptionButton } from "../../src/components/onboarding/OnboardingChrome";
 import { BRAND, LEARNING_GOALS } from "../../src/constants/onboarding";
-import {
-  loadOnboardingProfile,
-  saveOnboardingProfile,
-} from "../../src/lib/onboardingProfile";
+import { useOnboarding } from "../../src/state/OnboardingContext";
 
-/**
- * Why do you want to learn English? (Career, Travel, Speaking, …).
- */
+/** Why the learner wants English: Career, Travel, and the rest. */
 export default function GoalsScreen() {
+  const { profile, update } = useOnboarding();
   const [goal, setGoal] = useState<string | null>(null);
 
   useEffect(() => {
-    void loadOnboardingProfile().then((p) => {
-      if (p.goal) setGoal(p.goal);
-    });
-  }, []);
+    if (profile.goal) setGoal(profile.goal);
+  }, [profile.goal]);
 
   async function handleContinue() {
     if (!goal) return;
-    await saveOnboardingProfile({ goal });
+    await update({ goal });
     router.push("/onboarding/situations");
   }
 
   return (
-    <OnboardingChrome
+    <OnboardingLayout
       section="YOUR GOALS"
       step={0}
       totalSteps={4}
       title="Why do you want to learn English?"
-      footer={
-        <ContinueButton
-          disabled={!goal}
-          onPress={() => {
-            void handleContinue();
-          }}
-        />
-      }
+      continueDisabled={!goal}
+      onContinue={() => {
+        void handleContinue();
+      }}
     >
-      <ScrollView
-        style={styles.scroll}
-        contentContainerStyle={styles.content}
-        showsVerticalScrollIndicator={false}
-      >
+      <ScrollView style={styles.scroll} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         {LEARNING_GOALS.map((item) => (
           <OptionButton
             key={item.id}
@@ -62,7 +45,7 @@ export default function GoalsScreen() {
           />
         ))}
       </ScrollView>
-    </OnboardingChrome>
+    </OnboardingLayout>
   );
 }
 

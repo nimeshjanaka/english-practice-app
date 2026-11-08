@@ -29,7 +29,6 @@ from app.models.exercise import Exercise
 from app.models.lesson import Lesson
 from app.models.unit import Unit
 from app.models.user import User
-from app.services.lesson_draft import build_lesson_draft, save_lesson_draft
 from app.schemas.curriculum import (
     AssessmentCreate,
     AssessmentOut,
@@ -57,6 +56,7 @@ from app.schemas.curriculum import (
     VocabCreate,
     VocabOut,
 )
+from app.services.lesson_draft import build_lesson_draft, save_lesson_draft
 
 router = APIRouter()
 

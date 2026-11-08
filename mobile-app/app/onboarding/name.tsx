@@ -1,60 +1,38 @@
 import { router } from "expo-router";
 import { useEffect, useState } from "react";
-import {
-  KeyboardAvoidingView,
-  Platform,
-  StyleSheet,
-  TextInput,
-  View,
-} from "react-native";
+import { KeyboardAvoidingView, Platform, StyleSheet, TextInput, View } from "react-native";
 
-import {
-  ContinueButton,
-  OnboardingChrome,
-} from "../../src/components/onboarding/OnboardingChrome";
+import { OnboardingLayout } from "../../src/components/onboarding/OnboardingLayout";
 import { BRAND } from "../../src/constants/onboarding";
-import {
-  loadOnboardingProfile,
-  saveOnboardingProfile,
-} from "../../src/lib/onboardingProfile";
+import { useOnboarding } from "../../src/state/OnboardingContext";
 
-/**
- * User details — name.
- */
+/** Asks for the name the tutor should use. */
 export default function NameScreen() {
+  const { profile, update } = useOnboarding();
   const [name, setName] = useState("");
 
   useEffect(() => {
-    void loadOnboardingProfile().then((p) => {
-      if (p.name) setName(p.name);
-    });
-  }, []);
+    if (profile.name) setName(profile.name);
+  }, [profile.name]);
 
   async function handleContinue() {
     const trimmed = name.trim();
     if (!trimmed) return;
-    await saveOnboardingProfile({ name: trimmed });
+    await update({ name: trimmed });
     router.push("/onboarding/age");
   }
 
   return (
-    <KeyboardAvoidingView
-      style={styles.flex}
-      behavior={Platform.OS === "ios" ? "padding" : undefined}
-    >
-      <OnboardingChrome
+    <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === "ios" ? "padding" : undefined}>
+      <OnboardingLayout
         section="ABOUT YOU"
         step={0}
         totalSteps={5}
         title="How should we call you?"
-        footer={
-          <ContinueButton
-            disabled={!name.trim()}
-            onPress={() => {
-              void handleContinue();
-            }}
-          />
-        }
+        continueDisabled={!name.trim()}
+        onContinue={() => {
+          void handleContinue();
+        }}
       >
         <View style={styles.body}>
           <TextInput
@@ -71,16 +49,14 @@ export default function NameScreen() {
             }}
           />
         </View>
-      </OnboardingChrome>
+      </OnboardingLayout>
     </KeyboardAvoidingView>
   );
 }
 
 const styles = StyleSheet.create({
   flex: { flex: 1, backgroundColor: BRAND.bg },
-  body: {
-    paddingTop: 28,
-  },
+  body: { paddingTop: 28 },
   input: {
     borderWidth: 1.5,
     borderColor: BRAND.border,

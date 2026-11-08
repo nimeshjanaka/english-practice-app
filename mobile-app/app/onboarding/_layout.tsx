@@ -7,12 +7,14 @@ export default function OnboardingLayout() {
   return (
     <Stack screenOptions={{ headerShown: false, animation: "slide_from_right" }}>
       <Stack.Screen name="index" />
+      <Stack.Screen name="welcome" />
       <Stack.Screen name="about" />
       <Stack.Screen name="name" />
       <Stack.Screen name="age" />
       <Stack.Screen name="gender" />
       <Stack.Screen name="language" />
       <Stack.Screen name="level" />
+      <Stack.Screen name="level-test" />
       <Stack.Screen name="goals-intro" />
       <Stack.Screen name="goals" />
       <Stack.Screen name="situations" />
@@ -28,6 +30,7 @@ export default function OnboardingLayout() {
       <Stack.Screen name="schedule" />
       <Stack.Screen name="plan-ready" />
       <Stack.Screen name="plan-features" />
+      <Stack.Screen name="complete" />
     </Stack>
   );
 }

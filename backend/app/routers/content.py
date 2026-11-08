@@ -11,7 +11,13 @@ from app.models.lesson import Lesson
 from app.models.unit import Unit
 from app.models.user import User
 from app.models.user_progress import UserProgress
-from app.schemas.exercise import ExerciseCreate, ExerciseResponse, ExerciseSubmit, ExerciseSubmitResult, ExerciseUpdate
+from app.schemas.exercise import (
+    ExerciseCreate,
+    ExerciseResponse,
+    ExerciseSubmit,
+    ExerciseSubmitResult,
+    ExerciseUpdate,
+)
 from app.schemas.lesson import LessonCreate, LessonPathItem, LessonResponse, LessonUpdate
 from app.schemas.unit import UnitCreate, UnitResponse, UnitUpdate, UnitWithLessonsResponse
 from app.services.exercise_check import evaluate_exercise

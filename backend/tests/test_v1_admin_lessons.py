@@ -6,9 +6,9 @@ from unittest.mock import AsyncMock, patch
 import pytest
 
 from app.models.curriculum import CefrLevel, Course
-from app.services.ai_content import parse_exercise_json
 from app.models.lesson import Lesson
 from app.models.unit import Unit
+from app.services.ai_content import parse_exercise_json
 
 
 def _seed_path(db_session) -> Lesson:

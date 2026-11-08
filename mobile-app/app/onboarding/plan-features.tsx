@@ -37,7 +37,7 @@ const FEATURES = [
 export default function PlanFeaturesScreen() {
   async function handleContinue() {
     await markOnboardingSeen();
-    router.replace("/register");
+    router.push("/onboarding/complete");
   }
 
   return (

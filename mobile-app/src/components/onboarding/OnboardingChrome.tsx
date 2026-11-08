@@ -341,6 +341,7 @@ const styles = StyleSheet.create({
     borderColor: BRAND.blue,
   },
   continue: {
+    width: "100%",
     backgroundColor: BRAND.blue,
     borderRadius: BRAND.radiusBtn,
     paddingVertical: 17,

@@ -1,4 +1,5 @@
-import { Link } from "expo-router";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { Link, router } from "expo-router";
 import { useState } from "react";
 import {
   ActivityIndicator,
@@ -14,8 +15,8 @@ import {
 
 import api from "../src/api";
 import { GoogleSignInButton } from "../src/components/GoogleSignInButton";
-import { AUTH } from "../src/constants/api";
-import { authErrorMessage, saveTokenAndEnterApp } from "../src/lib/authSession";
+import { AUTH, TOKEN_KEY } from "../src/constants/api";
+import { authErrorMessage } from "../src/lib/authSession";
 
 /**
  * Sign up — email/password or Google.
@@ -54,7 +55,8 @@ export default function RegisterScreen() {
         setError("Account created but no token was returned.");
         return;
       }
-      await saveTokenAndEnterApp(accessToken);
+      await AsyncStorage.setItem(TOKEN_KEY, accessToken);
+      router.replace("/onboarding/complete");
     } catch (err) {
       setError(authErrorMessage(err, "Could not create your account."));
     } finally {
@@ -129,7 +131,7 @@ export default function RegisterScreen() {
             )}
           </TouchableOpacity>
 
-          <GoogleSignInButton onError={setError} />
+          <GoogleSignInButton onError={setError} afterAuthHref="/onboarding/complete" />
 
           <Text style={styles.footer}>
             Already have an account?{" "}

@@ -9,15 +9,34 @@ from pathlib import Path
 from typing import Any
 
 from groq import Groq
+from groq import NotFoundError as GroqNotFoundError
 
 from app.config import get_settings
 
-# Models available on this Groq account (playai-tts / llama-3.3 are unavailable)
+# Groq models: Whisper STT, chat tutor replies, Orpheus TTS when enabled
 STT_MODEL = "whisper-large-v3"
-CHAT_MODEL = "openai/gpt-oss-20b"
+# Prefer GROQ_CHAT_MODEL from .env; these are tried in order if one is unavailable.
+CHAT_MODEL_FALLBACKS = (
+    "openai/gpt-oss-20b",
+    "llama-3.1-8b-instant",
+    "llama-3.3-70b-versatile",
+)
 TTS_MODEL = "canopylabs/orpheus-v1-english"
 TTS_VOICE = "autumn"
 TTS_MAX_CHARS = 200  # Orpheus input limit
+
+
+def _chat_models() -> list[str]:
+    settings = get_settings()
+    preferred = (settings.GROQ_CHAT_MODEL or "").strip()
+    ordered = [preferred, *CHAT_MODEL_FALLBACKS] if preferred else list(CHAT_MODEL_FALLBACKS)
+    seen: set[str] = set()
+    models: list[str] = []
+    for name in ordered:
+        if name and name not in seen:
+            seen.add(name)
+            models.append(name)
+    return models
 
 TUTOR_SYSTEM_PROMPT = """
 You are AI KIT, a friendly spoken-English coach.
@@ -84,16 +103,29 @@ def generate_tutor_reply(
     parts.append(f"Learner said: {learner_text}")
     user_content = "\n".join(parts)
 
-    completion = client.chat.completions.create(
-        model=CHAT_MODEL,
-        response_format={"type": "json_object"},
-        messages=[
-            {"role": "system", "content": TUTOR_SYSTEM_PROMPT},
-            {"role": "user", "content": user_content},
-        ],
-        temperature=0.5,
-    )
-    raw = completion.choices[0].message.content or "{}"
+    messages = [
+        {"role": "system", "content": TUTOR_SYSTEM_PROMPT},
+        {"role": "user", "content": user_content},
+    ]
+    last_error: Exception | None = None
+    raw = "{}"
+    for model in _chat_models():
+        try:
+            completion = client.chat.completions.create(
+                model=model,
+                response_format={"type": "json_object"},
+                messages=messages,
+                temperature=0.5,
+            )
+            raw = completion.choices[0].message.content or "{}"
+            last_error = None
+            break
+        except GroqNotFoundError as exc:
+            last_error = exc
+            continue
+    if last_error is not None:
+        raise last_error
+
     data = _parse_tutor_json(raw)
     reply = str(data.get("reply", "")).strip() or "Good try! Say that again a little clearer."
     # Keep TTS within Orpheus's 200-character limit
