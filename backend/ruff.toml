@@ -1,0 +1,19 @@
+# FastAPI project lint defaults — ignore patterns that are normal for FastAPI/SQLAlchemy.
+line-length = 100
+target-version = "py313"
+
+[lint]
+select = ["E", "F", "I", "B", "UP"]
+ignore = [
+  "B008",  # FastAPI Depends()/File() in defaults
+  "E501",  # keep readable route signatures
+  "UP017", # timezone.utc is fine across Python versions we support
+  "UP042", # keep str Enum for SQLAlchemy compatibility
+  "UP043", # Generator[Session, None, None] is explicit and clear
+]
+
+[lint.per-file-ignores]
+"app/models/**/*.py" = ["F821"]  # quoted SQLAlchemy relationship forward refs
+"tests/**/*.py" = ["B008"]
+"scripts/**/*.py" = ["E402"]  # path bootstrap before app imports
+"seed.py" = ["E402"]

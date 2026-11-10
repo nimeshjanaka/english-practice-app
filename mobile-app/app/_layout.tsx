@@ -1,0 +1,45 @@
+import "react-native-gesture-handler";
+import "react-native-reanimated";
+
+import { Stack } from "expo-router";
+import { StatusBar } from "expo-status-bar";
+
+import { OnboardingProvider } from "../src/state/OnboardingContext";
+
+/**
+ * Root layout — Stack Navigator for auth screens + main tabs + lesson detail.
+ */
+export default function RootLayout() {
+  return (
+    <>
+      <StatusBar style="auto" />
+      <OnboardingProvider>
+      <Stack screenOptions={{ headerShown: false }}>
+        <Stack.Screen name="index" />
+        <Stack.Screen name="onboarding" />
+        <Stack.Screen name="login" />
+        <Stack.Screen name="register" />
+        <Stack.Screen name="forgot-password" />
+        <Stack.Screen name="reset-password" />
+        <Stack.Screen name="(tabs)" />
+        <Stack.Screen
+          name="lesson/[id]"
+          options={{ headerShown: false, title: "Practice", presentation: "card" }}
+        />
+        <Stack.Screen
+          name="lesson/ai-chat"
+          options={{ headerShown: true, title: "Talk with AI", presentation: "card" }}
+        />
+        <Stack.Screen
+          name="ai-chat/[lessonId]"
+          options={{ headerShown: true, title: "Talk with AI", presentation: "card" }}
+        />
+        <Stack.Screen
+          name="role-play/[id]"
+          options={{ headerShown: false, title: "Role Play", presentation: "card" }}
+        />
+      </Stack>
+      </OnboardingProvider>
+    </>
+  );
+}
