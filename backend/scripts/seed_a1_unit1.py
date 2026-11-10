@@ -1,7 +1,7 @@
 """
 Seed the full A1 Unit 1 curriculum: Introducing Yourself.
 
-Content mirrors the YayTalk learning-path lesson list
+Content mirrors the Speakora learning-path lesson list
 (Greetings → Unit examination) with published exercises for each lesson.
 
 Run from the backend folder (venv activated):

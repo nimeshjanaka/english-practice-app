@@ -1,7 +1,7 @@
 import { router } from "expo-router";
+import { Clock3, Mic2 } from "lucide-react-native";
 import {
   Image,
-  type ImageSourcePropType,
   ScrollView,
   StyleSheet,
   Text,
@@ -10,50 +10,14 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-type RolePlay = {
-  id: number;
-  title: string;
-  description: string;
-  image: ImageSourcePropType;
-};
-
-/** Practice scenarios for the Role Plays tab. */
-const ROLE_PLAYS: RolePlay[] = [
-  {
-    id: 1,
-    title: "Ordering Coffee",
-    description:
-      "Practice ordering a drink, asking for sizes, and chatting with a barista.",
-    image: require("../../assets/role-plays/coffee.jpg"),
-  },
-  {
-    id: 2,
-    title: "At the Airport",
-    description:
-      "Check in for a flight, ask about gates, and handle common travel questions.",
-    image: require("../../assets/role-plays/airport.jpg"),
-  },
-  {
-    id: 3,
-    title: "Meeting a Friend",
-    description:
-      "Greet someone, make small talk, and arrange plans in natural spoken English.",
-    image: require("../../assets/role-plays/friend.jpg"),
-  },
-];
+import { ROLE_PLAYS, ROLE_PLAY_SECONDS } from "../../src/constants/rolePlays";
 
 /**
- * Role Plays tab — 3 scenario cards with Start Chat.
+ * Role Plays tab — 10 timed two-person voice scenarios with topic images.
  */
 export default function RolePlaysScreen() {
   const insets = useSafeAreaInsets();
-
-  function startChat(rolePlay: RolePlay) {
-    router.push({
-      pathname: "/lesson/ai-chat",
-      params: { lessonId: String(rolePlay.id) },
-    });
-  }
+  const minutes = Math.round(ROLE_PLAY_SECONDS / 60);
 
   return (
     <ScrollView
@@ -66,11 +30,23 @@ export default function RolePlaysScreen() {
     >
       <Text style={styles.heading}>Role Plays</Text>
       <Text style={styles.subheading}>
-        Pick a scenario and start a practice chat with the AI tutor.
+        Two-person voice chat · {minutes} minutes each · hold the mic and speak
       </Text>
 
       {ROLE_PLAYS.map((rolePlay) => (
-        <View key={rolePlay.id} style={styles.card}>
+        <TouchableOpacity
+          key={rolePlay.id}
+          style={styles.card}
+          onPress={() =>
+            router.push({
+              pathname: "/role-play/[id]",
+              params: { id: rolePlay.id },
+            })
+          }
+          activeOpacity={0.9}
+          accessibilityRole="button"
+          accessibilityLabel={`Start ${rolePlay.title}`}
+        >
           <Image
             source={rolePlay.image}
             style={styles.cardImage}
@@ -78,17 +54,25 @@ export default function RolePlaysScreen() {
             accessibilityLabel={`${rolePlay.title} scene`}
           />
           <View style={styles.cardBody}>
-            <Text style={styles.cardTitle}>{rolePlay.title}</Text>
-            <Text style={styles.cardDescription}>{rolePlay.description}</Text>
-            <TouchableOpacity
-              style={styles.startButton}
-              onPress={() => startChat(rolePlay)}
-              activeOpacity={0.85}
-            >
-              <Text style={styles.startButtonText}>Start Chat</Text>
-            </TouchableOpacity>
+            <View style={styles.titleRow}>
+              <Text style={styles.cardTitle}>{rolePlay.title}</Text>
+              <View style={styles.timeChip}>
+                <Clock3 size={12} color="#64748B" />
+                <Text style={styles.timeText}>{minutes}m</Text>
+              </View>
+            </View>
+            <Text style={styles.cardMeta} numberOfLines={1}>
+              You · {rolePlay.userRole}  ·  Partner · {rolePlay.partnerRole}
+            </Text>
+            <Text style={styles.cardDescription} numberOfLines={2}>
+              {rolePlay.description}
+            </Text>
+            <View style={[styles.startChip, { backgroundColor: rolePlay.accent }]}>
+              <Mic2 size={14} color="#FFFFFF" />
+              <Text style={styles.startText}>Start chat</Text>
+            </View>
           </View>
-        </View>
+        </TouchableOpacity>
       ))}
     </ScrollView>
   );
@@ -97,61 +81,86 @@ export default function RolePlaysScreen() {
 const styles = StyleSheet.create({
   screen: {
     flex: 1,
-    backgroundColor: "#EFF6FF",
+    backgroundColor: "#F8FAFC",
   },
   content: {
     paddingHorizontal: 20,
-    paddingTop: 20,
-    gap: 16,
+    paddingTop: 12,
+    gap: 14,
   },
   heading: {
-    fontSize: 22,
+    fontSize: 24,
     fontWeight: "800",
-    color: "#1E3A8A",
-    marginBottom: 4,
+    color: "#0F172A",
+    letterSpacing: -0.3,
   },
   subheading: {
-    fontSize: 15,
+    fontSize: 14,
     color: "#64748B",
-    marginBottom: 8,
-    lineHeight: 22,
+    marginBottom: 4,
+    lineHeight: 20,
   },
   card: {
     backgroundColor: "#FFFFFF",
-    borderRadius: 16,
+    borderRadius: 18,
     borderWidth: 1,
-    borderColor: "#BFDBFE",
+    borderColor: "#E2E8F0",
     overflow: "hidden",
   },
   cardImage: {
     width: "100%",
-    height: 140,
-    backgroundColor: "#DBEAFE",
+    height: 148,
+    backgroundColor: "#E2E8F0",
   },
   cardBody: {
-    padding: 18,
+    padding: 14,
+    gap: 6,
+  },
+  titleRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 8,
   },
   cardTitle: {
-    fontSize: 18,
+    flex: 1,
+    fontSize: 17,
     fontWeight: "800",
-    color: "#1E3A8A",
-    marginBottom: 8,
+    color: "#0F172A",
+  },
+  timeChip: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+  },
+  timeText: {
+    fontSize: 12,
+    fontWeight: "600",
+    color: "#64748B",
+  },
+  cardMeta: {
+    fontSize: 12,
+    color: "#64748B",
   },
   cardDescription: {
-    fontSize: 14,
+    fontSize: 13,
     color: "#475569",
-    lineHeight: 21,
-    marginBottom: 16,
+    lineHeight: 18,
+    marginBottom: 4,
   },
-  startButton: {
-    backgroundColor: "#2563EB",
-    borderRadius: 10,
-    paddingVertical: 12,
+  startChip: {
+    alignSelf: "flex-start",
+    flexDirection: "row",
     alignItems: "center",
+    gap: 6,
+    borderRadius: 999,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    marginTop: 2,
   },
-  startButtonText: {
+  startText: {
     color: "#FFFFFF",
-    fontSize: 15,
+    fontSize: 13,
     fontWeight: "700",
   },
 });

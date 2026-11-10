@@ -28,7 +28,7 @@ from app.services.ai_chat import (
     synthesize_speech,
     transcribe_audio,
 )
-from app.services.progress import end_learning_session
+from app.services.progress import end_learning_session, mark_lesson_complete_after_speaking
 from app.services.speaking_sessions import (
     create_speaking_session,
     get_speaking_session,
@@ -167,4 +167,17 @@ def end_session(
         speaking_session_id=session.id,
         started_at=session.created_at,
     )
-    return SpeakingSessionEndOut(session_id=session.id, duration_seconds=row.duration_seconds)
+    # Unlock the next learning-path lesson only after exercises + this speaking finish.
+    lesson_completed = mark_lesson_complete_after_speaking(
+        db,
+        user_id=current_user.id,
+        lesson_id=session.lesson_id,
+    )
+    if lesson_completed:
+        db.commit()
+
+    return SpeakingSessionEndOut(
+        session_id=session.id,
+        duration_seconds=row.duration_seconds,
+        lesson_completed=lesson_completed,
+    )

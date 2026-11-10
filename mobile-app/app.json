@@ -1,27 +1,42 @@
 {
   "expo": {
-    "name": "English Development App",
+    "name": "Speakora",
     "slug": "mobile-app",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
-    "scheme": "englishapp",
+    "scheme": "speakora",
     "userInterfaceStyle": "light",
+    "splash": {
+      "image": "./assets/splash.png",
+      "resizeMode": "cover",
+      "backgroundColor": "#312E81"
+    },
     "ios": {
       "supportsTablet": true,
       "infoPlist": {
-        "NSMicrophoneUsageDescription": "Allow English Development App to access your microphone for AI speaking practice."
+        "NSMicrophoneUsageDescription": "Allow Speakora to access your microphone for AI speaking practice."
+      },
+      "splash": {
+        "image": "./assets/splash.png",
+        "resizeMode": "cover",
+        "backgroundColor": "#312E81"
       }
     },
     "android": {
       "adaptiveIcon": {
-        "backgroundColor": "#E6F4FE",
+        "backgroundColor": "#312E81",
         "foregroundImage": "./assets/android-icon-foreground.png",
         "backgroundImage": "./assets/android-icon-background.png",
         "monochromeImage": "./assets/android-icon-monochrome.png"
       },
       "permissions": ["RECORD_AUDIO"],
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "splash": {
+        "image": "./assets/splash.png",
+        "resizeMode": "cover",
+        "backgroundColor": "#312E81"
+      }
     },
     "web": {
       "favicon": "./assets/favicon.png",
@@ -32,9 +47,18 @@
       "expo-status-bar",
       "expo-web-browser",
       [
+        "expo-splash-screen",
+        {
+          "backgroundColor": "#312E81",
+          "image": "./assets/splash.png",
+          "resizeMode": "cover",
+          "imageWidth": 300
+        }
+      ],
+      [
         "expo-audio",
         {
-          "microphonePermission": "Allow English Development App to access your microphone for AI speaking practice."
+          "microphonePermission": "Allow Speakora to access your microphone for AI speaking practice."
         }
       ]
     ],

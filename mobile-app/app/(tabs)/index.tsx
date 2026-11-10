@@ -1,6 +1,6 @@
-import { router } from "expo-router";
+import { router, useFocusEffect } from "expo-router";
 import { Check } from "lucide-react-native";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { ActivityIndicator, Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from "react-native";
 import Animated, {
   Easing,
@@ -13,6 +13,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Svg, { Line } from "react-native-svg";
 
 import api, { axios } from "../../src/api";
+import { SettingsButton } from "../../src/components/SettingsButton";
 import { COURSES_PATH } from "../../src/constants/api";
 
 type PathLesson = {
@@ -85,13 +86,23 @@ export default function LearningPathScreen() {
     }
   }, []);
 
-  useEffect(() => {
-    void loadCourses();
-  }, [loadCourses]);
+  // Reload unlock state whenever we return from exercises / speaking.
+  useFocusEffect(
+    useCallback(() => {
+      setLoading(true);
+      void loadCourses();
+    }, [loadCourses]),
+  );
 
-  useEffect(() => {
-    pulse.value = withRepeat(withTiming(1.06, { duration: 900, easing: Easing.inOut(Easing.ease) }), -1, true);
-  }, [pulse]);
+  useFocusEffect(
+    useCallback(() => {
+      pulse.value = withRepeat(
+        withTiming(1.06, { duration: 900, easing: Easing.inOut(Easing.ease) }),
+        -1,
+        true,
+      );
+    }, [pulse]),
+  );
 
   const currentPulse = useAnimatedStyle(() => ({
     transform: [{ scale: pulse.value }],
@@ -126,8 +137,13 @@ export default function LearningPathScreen() {
   return (
     <View style={styles.screen}>
       <View style={[styles.header, { paddingTop: insets.top + 12 }]}>
-        <Text style={styles.unitLabel}>Unit</Text>
-        <Text style={styles.unitName}>{unitName}</Text>
+        <View style={styles.headerRow}>
+          <View style={styles.headerCopy}>
+            <Text style={styles.unitLabel}>Unit</Text>
+            <Text style={styles.unitName}>{unitName}</Text>
+          </View>
+          <SettingsButton />
+        </View>
       </View>
       <ScrollView
         contentContainerStyle={styles.scroll}
@@ -190,6 +206,13 @@ const styles = StyleSheet.create({
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: "#E5E7EB",
   },
+  headerRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 12,
+  },
+  headerCopy: { flex: 1 },
   unitLabel: { fontSize: 12, fontWeight: "700", letterSpacing: 1, color: "#94A3B8" },
   unitName: { marginTop: 4, fontSize: 24, fontWeight: "800", color: "#111827" },
   scroll: { paddingHorizontal: 28, paddingTop: 28, paddingBottom: 96 },

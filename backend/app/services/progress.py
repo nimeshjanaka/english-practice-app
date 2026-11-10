@@ -84,7 +84,8 @@ def refresh_lesson_progress(db: Session, *, user_id: int, lesson_id: int) -> Les
     progress.is_completed = is_completed
     progress.updated_at = _utcnow()
 
-    # Keep the older path table in sync for the learning-path UI.
+    # Keep score on the path row, but do NOT unlock the next lesson yet.
+    # Path unlock happens after speaking practice (see mark_lesson_complete_after_speaking).
     path = db.scalar(
         select(UserProgress).where(
             UserProgress.user_id == user_id,
@@ -94,10 +95,53 @@ def refresh_lesson_progress(db: Session, *, user_id: int, lesson_id: int) -> Les
     if path is None:
         path = UserProgress(user_id=user_id, lesson_id=lesson_id, ai_talk_time_seconds=0)
         db.add(path)
-    path.is_completed = is_completed
     path.score = score
 
     return progress
+
+
+def mark_lesson_complete_after_speaking(
+    db: Session,
+    *,
+    user_id: int,
+    lesson_id: int,
+) -> bool:
+    """
+    Unlock the next path node after speaking ends.
+
+    Requires every lesson exercise to be correct first (or the lesson has no exercises).
+    Returns True when the lesson is now marked complete on the learning path.
+    """
+    total = db.scalar(
+        select(func.count()).select_from(Exercise).where(Exercise.lesson_id == lesson_id)
+    ) or 0
+
+    lesson_progress = db.scalar(
+        select(LessonProgress).where(
+            LessonProgress.user_id == user_id,
+            LessonProgress.lesson_id == lesson_id,
+        )
+    )
+    exercises_done = total == 0 or (lesson_progress is not None and lesson_progress.is_completed)
+    if not exercises_done:
+        return False
+
+    path = db.scalar(
+        select(UserProgress).where(
+            UserProgress.user_id == user_id,
+            UserProgress.lesson_id == lesson_id,
+        )
+    )
+    if path is None:
+        path = UserProgress(user_id=user_id, lesson_id=lesson_id, ai_talk_time_seconds=0)
+        db.add(path)
+
+    path.is_completed = True
+    if lesson_progress is not None:
+        path.score = lesson_progress.score
+    elif path.score is None:
+        path.score = 100.0
+    return True
 
 
 def end_learning_session(
@@ -197,10 +241,11 @@ def current_streak_days(db: Session, user_id: int) -> int:
 
 def progress_overview(db: Session, user_id: int) -> dict:
     """Aggregate stats for the Profile screen."""
+    # Path-complete lessons (exercises + speaking), not exercise-only progress.
     lessons_completed = db.scalar(
-        select(func.count()).select_from(LessonProgress).where(
-            LessonProgress.user_id == user_id,
-            LessonProgress.is_completed.is_(True),
+        select(func.count()).select_from(UserProgress).where(
+            UserProgress.user_id == user_id,
+            UserProgress.is_completed.is_(True),
         )
     ) or 0
 

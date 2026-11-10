@@ -81,16 +81,16 @@ def _bump_talk_time(
 @router.post("/speak", response_model=SpeakResponse)
 async def speak(
     request: Request,
-    lesson_id: int = Form(...),
     text: str = Form(...),
+    lesson_id: int | None = Form(None),
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ) -> SpeakResponse:
     """
-    Speak an AI KIT line (intro / next question) without learner audio.
-    Used after the user taps Start and between Q&A turns.
+    Speak an AI line (intro / role-play opener / next question) without learner audio.
     """
-    _require_lesson(db, lesson_id)
+    if lesson_id is not None:
+        _require_lesson(db, lesson_id)
     spoken = (text or "").strip()
     if not spoken:
         raise HTTPException(
@@ -109,7 +109,8 @@ async def speak(
         ) from exc
 
     audio_url = _try_tts(request, client, spoken)
-    _bump_talk_time(db, current_user, lesson_id, spoken)
+    if lesson_id is not None:
+        _bump_talk_time(db, current_user, lesson_id, spoken)
 
     return SpeakResponse(text=spoken, audio_url=audio_url)
 
@@ -117,17 +118,26 @@ async def speak(
 @router.post("/chat", response_model=ChatResponse)
 async def chat(
     request: Request,
-    lesson_id: int = Form(...),
     audio: UploadFile = File(...),
+    lesson_id: int | None = Form(None),
     current_question: str = Form(""),
+    role_context: str = Form(""),
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ) -> ChatResponse:
     """
-    Accept learner audio + lesson_id (+ optional current_question),
-    run Groq STT → AI KIT correction → TTS, and bump ai_talk_time_seconds.
+    Accept learner audio (+ lesson_id and/or role_context),
+    run Groq STT → tutor/role-play reply → TTS, and bump talk time when a lesson is set.
     """
-    lesson = _require_lesson(db, lesson_id)
+    role = role_context.strip()
+    lesson = None
+    if lesson_id is not None:
+        lesson = _require_lesson(db, lesson_id)
+    elif not role:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="lesson_id or role_context is required.",
+        )
 
     suffix = Path(audio.filename or "upload.m4a").suffix.lower() or ".m4a"
     if suffix not in ALLOWED_AUDIO_SUFFIXES:
@@ -162,14 +172,17 @@ async def chat(
         tutor = generate_tutor_reply(
             client,
             transcript,
-            lesson_title=lesson.title,
+            lesson_title=lesson.title if lesson else None,
             current_question=current_question.strip() or None,
+            role_context=role or None,
         )
         reply = tutor["reply"]
         grammar_correction = tutor["grammar_correction"]
 
         audio_url = _try_tts(request, client, reply)
-        total_seconds = _bump_talk_time(db, current_user, lesson_id, transcript, reply)
+        total_seconds = 0
+        if lesson_id is not None:
+            total_seconds = _bump_talk_time(db, current_user, lesson_id, transcript, reply)
 
         return ChatResponse(
             transcript=transcript,
@@ -180,7 +193,18 @@ async def chat(
         )
     except HTTPException:
         raise
+    except ValueError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(exc),
+        ) from exc
     except Exception as exc:  # noqa: BLE001 — surface Groq / IO failures cleanly
+        message = str(exc)
+        if "unsupported_audio_format" in message or "file must be one of" in message:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Audio format not supported. Hold the mic and try again.",
+            ) from exc
         raise HTTPException(
             status_code=status.HTTP_502_BAD_GATEWAY,
             detail=f"AI chat pipeline failed: {exc}",

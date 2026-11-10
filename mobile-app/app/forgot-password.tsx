@@ -86,7 +86,7 @@ export default function ForgotPasswordScreen() {
         keyboardShouldPersistTaps="handled"
       >
         <View style={styles.card}>
-          <Text style={styles.brand}>English Development</Text>
+          <Text style={styles.brand}>Speakora</Text>
           <Text style={styles.heading}>Forgot password</Text>
           <Text style={styles.subheading}>
             Enter your email and choose a new password

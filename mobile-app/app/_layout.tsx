@@ -34,6 +34,10 @@ export default function RootLayout() {
           name="ai-chat/[lessonId]"
           options={{ headerShown: true, title: "Talk with AI", presentation: "card" }}
         />
+        <Stack.Screen
+          name="role-play/[id]"
+          options={{ headerShown: false, title: "Role Play", presentation: "card" }}
+        />
       </Stack>
       </OnboardingProvider>
     </>

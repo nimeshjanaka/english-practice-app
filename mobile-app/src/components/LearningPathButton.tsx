@@ -1,9 +1,9 @@
-import { Map } from "lucide-react-native";
+import { ArrowLeft } from "lucide-react-native";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { router } from "expo-router";
 
 type Props = {
-  /** When true, show a labeled Path button instead of only the map icon. */
+  /** When true, show a labeled Path button instead of only the icon. */
   labeled?: boolean;
 };
 
@@ -23,7 +23,7 @@ export function LearningPathButton({ labeled = false }: Props) {
       accessibilityLabel="Back to learning path"
       hitSlop={8}
     >
-      <Map color="#2563EB" size={labeled ? 16 : 18} strokeWidth={2.4} />
+      <ArrowLeft color="#2563EB" size={labeled ? 16 : 18} strokeWidth={2.6} />
       {labeled ? <Text style={styles.label}>Path</Text> : null}
     </Pressable>
   );
@@ -31,7 +31,7 @@ export function LearningPathButton({ labeled = false }: Props) {
 
 /** Spacer matching the path button width so titles stay centered. */
 export function LearningPathButtonSpacer() {
-  return <View style={styles.btn} />;
+  return <View style={styles.spacer} />;
 }
 
 const styles = StyleSheet.create({
@@ -45,12 +45,17 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "#BFDBFE",
     paddingHorizontal: 8,
+    zIndex: 2,
   },
   btnLabeled: {
     flexDirection: "row",
     gap: 4,
     paddingHorizontal: 10,
     borderRadius: 14,
+  },
+  spacer: {
+    minWidth: 72,
+    height: 40,
   },
   label: {
     color: "#2563EB",

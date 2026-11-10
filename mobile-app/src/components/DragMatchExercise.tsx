@@ -14,6 +14,12 @@ import Animated, {
   withSpring,
 } from "react-native-reanimated";
 
+import {
+  playCorrectTone,
+  playIncorrectTone,
+  preloadFeedbackTones,
+} from "../lib/feedbackTones";
+
 export type MatchExerciseData = {
   prompt: string;
   promptValue: string;
@@ -36,6 +42,10 @@ export function DragMatchExercise({ data, onContinue }: DragMatchExerciseProps) 
   const [selected, setSelected] = useState<string | null>(null);
   const [feedback, setFeedback] = useState<"correct" | "incorrect" | null>(null);
   const [dragging, setDragging] = useState<string | null>(null);
+
+  useEffect(() => {
+    preloadFeedbackTones();
+  }, []);
 
   useEffect(() => {
     setSelected(null);
@@ -63,6 +73,8 @@ export function DragMatchExercise({ data, onContinue }: DragMatchExerciseProps) 
   function handleSubmit() {
     if (!selected || feedback === "correct") return;
     const ok = selected.trim().toLowerCase() === data.correct.trim().toLowerCase();
+    if (ok) playCorrectTone();
+    else playIncorrectTone();
     setFeedback(ok ? "correct" : "incorrect");
   }
 

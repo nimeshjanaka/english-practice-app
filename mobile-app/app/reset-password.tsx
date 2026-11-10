@@ -67,7 +67,7 @@ export default function ResetPasswordScreen() {
       behavior={Platform.OS === "ios" ? "padding" : undefined}
     >
       <View style={styles.card}>
-        <Text style={styles.brand}>English Development</Text>
+        <Text style={styles.brand}>Speakora</Text>
         <Text style={styles.heading}>Reset password</Text>
         <Text style={styles.subheading}>Choose a new password for your account</Text>
 

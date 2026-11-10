@@ -32,3 +32,7 @@ class SpeakingSessionEnd(BaseModel):
 class SpeakingSessionEndOut(BaseModel):
     session_id: str
     duration_seconds: int
+    lesson_completed: bool = Field(
+        default=False,
+        description="True when exercises were done and speaking finish unlocked this lesson on the path.",
+    )

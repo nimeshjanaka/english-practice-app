@@ -1,0 +1,579 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Speakora — Complete Product & Technical Documentation</title>
+  <style>
+    @page {
+      size: A4;
+      margin: 18mm 16mm 20mm 16mm;
+      @bottom-center {
+        content: "Speakora Documentation  ·  Page " counter(page);
+        font-size: 9pt;
+        color: #64748b;
+      }
+    }
+    * { box-sizing: border-box; }
+    body {
+      font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+      color: #0f172a;
+      font-size: 10.5pt;
+      line-height: 1.45;
+    }
+    h1 {
+      font-size: 26pt;
+      color: #1e1b4b;
+      margin: 0 0 6pt;
+      letter-spacing: -0.5px;
+    }
+    h2 {
+      font-size: 15pt;
+      color: #312e81;
+      border-bottom: 2px solid #c7d2fe;
+      padding-bottom: 4pt;
+      margin-top: 22pt;
+      page-break-after: avoid;
+    }
+    h3 {
+      font-size: 12pt;
+      color: #1e3a8a;
+      margin-top: 14pt;
+      page-break-after: avoid;
+    }
+    h4 {
+      font-size: 10.5pt;
+      color: #334155;
+      margin-top: 10pt;
+      margin-bottom: 4pt;
+    }
+    p, li { margin: 4pt 0; }
+    ul, ol { margin: 4pt 0 8pt 18pt; padding: 0; }
+    .cover {
+      min-height: 240mm;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      padding: 24pt;
+      background: linear-gradient(160deg, #1e1b4b 0%, #312e81 55%, #4338ca 100%);
+      color: #fff;
+      border-radius: 12pt;
+      page-break-after: always;
+    }
+    .cover .brand-sub { color: #fde047; font-weight: 700; font-size: 14pt; }
+    .cover h1 { color: #fff; font-size: 34pt; margin-top: 8pt; }
+    .cover .meta { margin-top: 28pt; font-size: 11pt; color: #e0e7ff; }
+    .cover .meta strong { color: #fff; }
+    .toc { page-break-after: always; }
+    .toc ol { margin-left: 18pt; }
+    .toc li { margin: 6pt 0; }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 8pt 0 12pt;
+      font-size: 9.5pt;
+    }
+    th, td {
+      border: 1px solid #cbd5e1;
+      padding: 5pt 7pt;
+      text-align: left;
+      vertical-align: top;
+    }
+    th {
+      background: #eef2ff;
+      color: #1e3a8a;
+      font-weight: 700;
+    }
+    tr:nth-child(even) td { background: #f8fafc; }
+    code, .mono {
+      font-family: Menlo, Consolas, monospace;
+      font-size: 8.5pt;
+      background: #f1f5f9;
+      padding: 1pt 3pt;
+      border-radius: 3pt;
+    }
+    pre {
+      background: #0f172a;
+      color: #e2e8f0;
+      padding: 10pt 12pt;
+      border-radius: 8pt;
+      font-size: 8pt;
+      line-height: 1.4;
+      white-space: pre-wrap;
+      page-break-inside: avoid;
+    }
+    .box {
+      border: 1px solid #c7d2fe;
+      background: #eef2ff;
+      border-radius: 8pt;
+      padding: 10pt 12pt;
+      margin: 10pt 0;
+      page-break-inside: avoid;
+    }
+    .box.warn {
+      border-color: #fde68a;
+      background: #fffbeb;
+    }
+    .badge {
+      display: inline-block;
+      background: #2563eb;
+      color: #fff;
+      font-size: 8pt;
+      font-weight: 700;
+      padding: 2pt 6pt;
+      border-radius: 999pt;
+      margin-right: 4pt;
+    }
+    .flow {
+      font-family: Menlo, Consolas, monospace;
+      font-size: 8.5pt;
+      background: #f8fafc;
+      border: 1px dashed #94a3b8;
+      border-radius: 8pt;
+      padding: 10pt;
+      white-space: pre;
+      page-break-inside: avoid;
+    }
+    .muted { color: #64748b; }
+    .footer-note { font-size: 9pt; color: #64748b; margin-top: 18pt; }
+  </style>
+</head>
+<body>
+
+  <!-- COVER -->
+  <section class="cover">
+    <div class="brand-sub">SPEAKORA</div>
+    <h1>Complete Product &amp;<br/>Technical Documentation</h1>
+    <p style="font-size:13pt;color:#c7d2fe;max-width:420pt;margin-top:10pt;">
+      English speaking &amp; learning platform — mobile app, FastAPI backend, and admin content studio.
+    </p>
+    <div class="meta">
+      <p><strong>Product name:</strong> Speakora</p>
+      <p><strong>Document type:</strong> Product + Architecture + Feature + API Reference</p>
+      <p><strong>Version:</strong> 1.0 (November 2026)</p>
+      <p><strong>Audience:</strong> Founders, developers, QA, content editors</p>
+      <p><strong>Repository:</strong> english development App (monorepo)</p>
+    </div>
+  </section>
+
+  <!-- TOC -->
+  <section class="toc">
+    <h2>Table of Contents</h2>
+    <ol>
+      <li>Executive Summary</li>
+      <li>Product Vision &amp; Brand</li>
+      <li>System Architecture</li>
+      <li>Technology Stack</li>
+      <li>Repository Structure</li>
+      <li>Learner Journey (End-to-End)</li>
+      <li>Mobile App Features</li>
+      <li>Learning Path &amp; Lesson Unlock Rules</li>
+      <li>Exercises System</li>
+      <li>Speaking Practice (Voice Chat)</li>
+      <li>Role Plays (10 Scenarios)</li>
+      <li>Curriculum Content (A1 Unit 1)</li>
+      <li>Admin Panel (Content Studio)</li>
+      <li>Backend API Reference</li>
+      <li>Database &amp; Progress Model</li>
+      <li>AI Pipeline (Groq)</li>
+      <li>Environment &amp; Local Setup</li>
+      <li>Testing &amp; Quality</li>
+      <li>Known Flows &amp; Acceptance Criteria</li>
+      <li>Glossary</li>
+    </ol>
+  </section>
+
+  <h2>1. Executive Summary</h2>
+  <p>
+    <strong>Speakora</strong> is a mobile-first English learning product focused on structured CEFR lessons,
+    interactive exercises, timed AI speaking practice, and scenario-based role-play voice chats.
+    The platform has three surfaces:
+  </p>
+  <ul>
+    <li><strong>Mobile app</strong> (Expo / React Native) — learner experience</li>
+    <li><strong>Backend API</strong> (FastAPI / PostgreSQL) — auth, curriculum, progress, AI voice</li>
+    <li><strong>Admin panel</strong> (Next.js) — curriculum content studio</li>
+  </ul>
+  <div class="box">
+    <strong>Current release focus:</strong> A1 Unit 1 “Introducing Yourself” with 10 lessons,
+    sequential unlock (exercises + speaking), 10 role-play scenarios (4 minutes each),
+    branded splash, exercise feedback tones, and profile progress overview.
+  </div>
+
+  <h2>2. Product Vision &amp; Brand</h2>
+  <h3>2.1 Brand</h3>
+  <table>
+    <tr><th>Item</th><th>Value</th></tr>
+    <tr><td>Product name</td><td>Speakora</td></tr>
+    <tr><td>Wordmark</td><td>Speak (white/blue) + ora (accent yellow)</td></tr>
+    <tr><td>Tagline</td><td>Speak English with confidence</td></tr>
+    <tr><td>Primary colors</td><td>Indigo / blue (#312E81, #2563EB), yellow accent (#FDE047)</td></tr>
+    <tr><td>Mascot</td><td>Friendly AI tutor robot (splash / onboarding)</td></tr>
+    <tr><td>App scheme</td><td><code>speakora://</code></td></tr>
+  </table>
+  <p class="muted">Former working name “YayTalk / Yay” has been fully renamed to Speakora in product UI.</p>
+
+  <h3>2.2 Learning principles</h3>
+  <ul>
+    <li>Structured CEFR progression (starting at A1)</li>
+    <li>Practice + immediate feedback (visual, text explanations, audio tones)</li>
+    <li>Speaking first: every lesson ends with voice practice before unlocking the next</li>
+    <li>Real-life role plays for transferable conversation skills</li>
+    <li>Measurable progress: completed lessons, speaking time, streaks</li>
+  </ul>
+
+  <h2>3. System Architecture</h2>
+  <div class="flow">┌──────────────────┐     HTTPS/REST      ┌──────────────────────┐
+│  Mobile (Expo)   │◄───────────────────►│  FastAPI Backend     │
+│  Speakora app    │                     │  /api/*  /api/v1/*   │
+└──────────────────┘                     └──────────┬───────────┘
+                                                    │
+         ┌──────────────────┐                       │ SQLAlchemy
+         │ Admin (Next.js)  │◄────── REST ──────────┤
+         │ Content Studio   │                       ▼
+         └──────────────────┘              ┌────────────────┐
+                                           │  PostgreSQL    │
+                                           └────────────────┘
+                                                    │
+                                           ┌────────────────┐
+                                           │ Groq AI        │
+                                           │ Whisper / Chat │
+                                           │ / TTS          │
+                                           └────────────────┘</div>
+
+  <h3>3.1 High-level responsibilities</h3>
+  <table>
+    <tr><th>Layer</th><th>Responsibility</th></tr>
+    <tr><td>Mobile</td><td>Auth, onboarding, learning path, exercises, speaking UI, role plays, profile</td></tr>
+    <tr><td>Backend</td><td>Auth/JWT, curriculum serving, attempt scoring, progress unlock, AI STT/chat/TTS</td></tr>
+    <tr><td>Admin</td><td>Create/edit courses, units, lessons, exercises; publish workflow</td></tr>
+    <tr><td>Database</td><td>Users, curriculum, exercises, attempts, lesson progress, speaking sessions</td></tr>
+    <tr><td>AI (Groq)</td><td>Speech-to-text, tutor/role-play replies, optional TTS audio</td></tr>
+  </table>
+
+  <h2>4. Technology Stack</h2>
+  <table>
+    <tr><th>Area</th><th>Stack</th></tr>
+    <tr><td>Mobile</td><td>Expo ~58, Expo Router, TypeScript, Axios, Reanimated, expo-audio, Lottie, Lucide</td></tr>
+    <tr><td>Backend</td><td>Python, FastAPI, SQLAlchemy, Pydantic, Alembic, Pytest</td></tr>
+    <tr><td>Admin</td><td>Next.js App Router, Tailwind CSS, shadcn/ui</td></tr>
+    <tr><td>Database</td><td>PostgreSQL</td></tr>
+    <tr><td>AI</td><td>Groq (Whisper large-v3, chat model fallbacks, Orpheus TTS when enabled)</td></tr>
+  </table>
+
+  <h2>5. Repository Structure</h2>
+  <pre>english development App/
+├── mobile-app/          # Expo learner app (Speakora)
+├── backend/             # FastAPI API + Alembic + seeds/tests
+├── admin-panel/         # Next.js Content Studio
+├── docs/                # Product documentation (this PDF)
+└── README.md            # Architecture blueprint</pre>
+
+  <h2>6. Learner Journey (End-to-End)</h2>
+  <ol>
+    <li><strong>Splash</strong> — indigo branded screen with robot + Speakora wordmark + welcome audio</li>
+    <li><strong>Onboarding</strong> — goals, level, focus, schedule, tutor voice, plan screens</li>
+    <li><strong>Auth</strong> — register / login / Google / forgot &amp; reset password</li>
+    <li><strong>Learning Path</strong> — vertical unit trail; only current + completed lessons open</li>
+    <li><strong>Lesson exercises</strong> — up to 3 tries; correct/incorrect tones; explanations</li>
+    <li><strong>Speaking</strong> — 3-minute hold-to-talk AI voice practice</li>
+    <li><strong>Return to unit</strong> — lesson marked complete → next lesson unlocks</li>
+    <li><strong>Role Plays</strong> — optional 4-minute two-person scenario chats</li>
+    <li><strong>Profile</strong> — lessons completed, speaking time, streak</li>
+  </ol>
+
+  <h2>7. Mobile App Features</h2>
+  <h3>7.1 Tabs</h3>
+  <table>
+    <tr><th>Tab</th><th>Purpose</th></tr>
+    <tr><td>Learning Path</td><td>Unit trail of lessons with lock/current/completed states</td></tr>
+    <tr><td>Role Plays</td><td>10 scenario cards → timed voice role play</td></tr>
+    <tr><td>Profile</td><td>Progress overview stats</td></tr>
+    <tr><td>Help</td><td>Support / help content</td></tr>
+  </table>
+
+  <h3>7.2 Splash &amp; branding</h3>
+  <ul>
+    <li>Native Expo splash uses indigo background + robot splash art</li>
+    <li>In-app splash: gradient, robot portrait, pulse rings, floating motion, Speakora title</li>
+    <li>Shared brand constants in <code>mobile-app/src/constants/brand.ts</code></li>
+  </ul>
+
+  <h3>7.3 Auth screens</h3>
+  <ul>
+    <li>Login, Register, Forgot password, Reset password</li>
+    <li>Google Sign-In supported via configured web client id</li>
+    <li>JWT stored in AsyncStorage (<code>access_token</code>)</li>
+  </ul>
+
+  <h2>8. Learning Path &amp; Lesson Unlock Rules</h2>
+  <div class="box">
+    <strong>Unlock rule (important):</strong> A lesson unlocks the <em>next</em> lesson only after
+    <strong>all exercises are answered correctly</strong> <em>and</em> the learner finishes
+    that lesson’s <strong>speaking session</strong>.
+  </div>
+  <h3>8.1 Path UI states</h3>
+  <table>
+    <tr><th>State</th><th>Meaning</th><th>UI</th></tr>
+    <tr><td>completed</td><td><code>UserProgress.is_completed = true</code></td><td>Green node with check</td></tr>
+    <tr><td>current</td><td>First incomplete lesson</td><td>Blue pulsing node (tappable)</td></tr>
+    <tr><td>locked</td><td>Later incomplete lessons</td><td>Pink/locked node (disabled)</td></tr>
+  </table>
+  <h3>8.2 Completion pipeline</h3>
+  <ol>
+    <li>Each correct unique exercise updates <code>LessonProgress</code> (exercise score).</li>
+    <li>When every exercise in the lesson is correct → <code>LessonProgress.is_completed = true</code>.</li>
+    <li>Speaking session <code>POST /api/v1/speaking/sessions/{id}/end</code> calls
+      <code>mark_lesson_complete_after_speaking</code>.</li>
+    <li>If exercises are done, sets <code>UserProgress.is_completed = true</code> (path unlock).</li>
+    <li>Mobile speaking screen shows <strong>Back to unit</strong> and the Learning Path reloads on focus.</li>
+  </ol>
+  <div class="flow">Greetings (exercises → speak) → unlock Introducing yourself
+Introducing yourself (exercises → speak) → unlock Personal information
+Personal information → … → Unit examination</div>
+
+  <h2>9. Exercises System</h2>
+  <h3>9.1 Supported types</h3>
+  <table>
+    <tr><th>Type</th><th>Learner UI</th></tr>
+    <tr><td>multiple_choice / mcq</td><td>Tap option list</td></tr>
+    <tr><td>fill_blank</td><td>Text input</td></tr>
+    <tr><td>sentence_ordering</td><td>Tap tokens into order</td></tr>
+    <tr><td>matching / drag-drop-match</td><td>Match / drag chips</td></tr>
+  </table>
+  <h3>9.2 Attempt rules</h3>
+  <ul>
+    <li>Maximum <strong>3 tries</strong> per exercise</li>
+    <li>Wrong answers play negative tone + show remaining tries</li>
+    <li>Correct answers play positive tone + show explanation</li>
+    <li>After 3 fails, correct answer is revealed and learner can continue</li>
+    <li>Attempts posted to <code>POST /api/v1/exercises/{id}/attempts</code></li>
+  </ul>
+  <h3>9.3 Feedback tones</h3>
+  <ul>
+    <li>Assets: <code>assets/audio/correct.*</code>, <code>assets/audio/incorrect.*</code></li>
+    <li>Helper: <code>mobile-app/src/lib/feedbackTones.ts</code> (preload + play + light vibration)</li>
+  </ul>
+
+  <h2>10. Speaking Practice (Voice Chat)</h2>
+  <ul>
+    <li>Route: <code>/lesson/[id]/speak</code></li>
+    <li>Duration: <strong>3 minutes</strong> countdown timer</li>
+    <li>Hold-to-talk microphone; audio uploaded as AAC/M4A</li>
+    <li>Backend: create speaking session → message turns (STT → tutor reply → optional TTS) → end session</li>
+    <li>On finish: return to Learning Path; unlock next lesson if exercises were completed</li>
+  </ul>
+  <h3>10.1 Speaking API</h3>
+  <table>
+    <tr><th>Method</th><th>Path</th><th>Purpose</th></tr>
+    <tr><td>POST</td><td><code>/api/v1/speaking/sessions</code></td><td>Start session (<code>lesson_id</code>)</td></tr>
+    <tr><td>POST</td><td><code>/api/v1/speaking/sessions/{id}/messages</code></td><td>Upload audio turn</td></tr>
+    <tr><td>POST</td><td><code>/api/v1/speaking/sessions/{id}/end</code></td><td>Close session; may set <code>lesson_completed</code></td></tr>
+  </table>
+
+  <h2>11. Role Plays (10 Scenarios)</h2>
+  <p>Tab → list of 10 illustrated scenarios → dedicated screen <code>/role-play/[id]</code>.</p>
+  <ul>
+    <li><strong>Format:</strong> two-person voice chat (learner ↔ AI partner in character)</li>
+    <li><strong>Duration:</strong> 4:00 with centered timer above voice orb</li>
+    <li><strong>Controls:</strong> hold mic to talk; Exit chip / Exit chat / finished Exit</li>
+    <li><strong>Orb:</strong> voice-reactive waveform orb (mic metering + fallback animation)</li>
+    <li><strong>AI:</strong> <code>role_context</code> form field switches backend to role-play system prompt</li>
+  </ul>
+  <h3>11.1 Scenario catalog</h3>
+  <table>
+    <tr><th>#</th><th>Title</th><th>You</th><th>Partner</th></tr>
+    <tr><td>1</td><td>Ordering Coffee</td><td>Customer</td><td>Barista</td></tr>
+    <tr><td>2</td><td>At the Airport</td><td>Traveler</td><td>Check-in agent</td></tr>
+    <tr><td>3</td><td>Meeting a Friend</td><td>You</td><td>Friend</td></tr>
+    <tr><td>4</td><td>Hotel Check-in</td><td>Guest</td><td>Receptionist</td></tr>
+    <tr><td>5</td><td>Doctor Visit</td><td>Patient</td><td>Doctor</td></tr>
+    <tr><td>6</td><td>Job Interview</td><td>Candidate</td><td>Interviewer</td></tr>
+    <tr><td>7</td><td>Restaurant Dinner</td><td>Diner</td><td>Waiter</td></tr>
+    <tr><td>8</td><td>Clothes Shopping</td><td>Shopper</td><td>Shop assistant</td></tr>
+    <tr><td>9</td><td>Asking for Directions</td><td>Visitor</td><td>Local resident</td></tr>
+    <tr><td>10</td><td>Phone Support</td><td>Customer</td><td>Support agent</td></tr>
+  </table>
+
+  <h2>12. Curriculum Content (A1 Unit 1)</h2>
+  <p><strong>Course:</strong> A1 English · <strong>Unit:</strong> Introducing Yourself</p>
+  <table>
+    <tr><th>#</th><th>Lesson</th><th>Focus</th><th>Seed exercises</th></tr>
+    <tr><td>1</td><td>Greetings</td><td>Matching, MCQ, speaking</td><td>3</td></tr>
+    <tr><td>2</td><td>Introducing yourself</td><td>Fill blanks, sentence building</td><td>3</td></tr>
+    <tr><td>3</td><td>Personal information</td><td>Questions and answers</td><td>3</td></tr>
+    <tr><td>4</td><td>Countries and nationalities</td><td>Vocabulary, matching</td><td>3</td></tr>
+    <tr><td>5</td><td>Jobs and professions</td><td>Picture matching, grammar</td><td>3</td></tr>
+    <tr><td>6</td><td>Asking questions</td><td>Ordering, fill, MCQ</td><td>3</td></tr>
+    <tr><td>7</td><td>Listening practice</td><td>Dictation-style / MCQ</td><td>3</td></tr>
+    <tr><td>8</td><td>Speaking practice</td><td>AI speaking prep</td><td>2+</td></tr>
+    <tr><td>9</td><td>Revision</td><td>Mixed exercises</td><td>3</td></tr>
+    <tr><td>10</td><td>Unit examination</td><td>Comprehensive test</td><td>seeded set</td></tr>
+  </table>
+  <h4>Example — Greetings (3 exercises)</h4>
+  <ol>
+    <li>Matching: Match the greeting → <em>Hello</em></li>
+    <li>MCQ: What do you say in the morning? → <em>Good morning</em></li>
+    <li>MCQ: Which phrase means goodbye? → <em>See you later</em></li>
+  </ol>
+  <h4>Example — Introducing yourself (3 exercises)</h4>
+  <ol>
+    <li>Fill blank: My name _____ Sam. → <em>is</em></li>
+    <li>Ordering: My / name / is / Lina</li>
+    <li>MCQ: Choose the correct sentence → <em>I am Tom.</em></li>
+  </ol>
+  <p>Seed script: <code>backend/scripts/seed_a1_unit1.py</code></p>
+
+  <h2>13. Admin Panel (Content Studio)</h2>
+  <ul>
+    <li>Next.js App Router + Tailwind + shadcn/ui</li>
+    <li>Branded as <strong>Speakora Content Studio</strong></li>
+    <li>Manages curriculum entities (courses, units, lessons, exercises, speaking scenarios)</li>
+    <li>Content statuses: draft → generated → under_review → changes_requested → approved → published → archived</li>
+    <li>Learner-visible statuses: <code>approved</code>, <code>published</code></li>
+  </ul>
+
+  <h2>14. Backend API Reference</h2>
+  <h3>14.1 Auth</h3>
+  <table>
+    <tr><th>Method</th><th>Path</th><th>Notes</th></tr>
+    <tr><td>POST</td><td><code>/api/auth/register</code></td><td>Create account + token</td></tr>
+    <tr><td>POST</td><td><code>/api/auth/login</code></td><td>Email/password</td></tr>
+    <tr><td>POST</td><td><code>/api/auth/google</code></td><td>Google ID token</td></tr>
+    <tr><td>POST</td><td><code>/api/auth/forgot-password</code></td><td>Reset flow start</td></tr>
+    <tr><td>POST</td><td><code>/api/auth/reset-password</code></td><td>Reset with token</td></tr>
+    <tr><td>GET</td><td><code>/api/auth/me</code></td><td>Current user</td></tr>
+  </table>
+
+  <h3>14.2 Curriculum &amp; content</h3>
+  <table>
+    <tr><th>Method</th><th>Path</th><th>Notes</th></tr>
+    <tr><td>GET</td><td><code>/api/v1/courses</code></td><td>Learning path with <code>is_completed</code></td></tr>
+    <tr><td>GET</td><td><code>/api/v1/lessons/{id}</code></td><td>Lesson + exercises</td></tr>
+    <tr><td>GET</td><td><code>/api/content/lessons/{id}/exercises</code></td><td>Exercise list for player</td></tr>
+    <tr><td>POST</td><td><code>/api/v1/exercises/{id}/attempts</code></td><td>Score attempt + refresh progress</td></tr>
+  </table>
+
+  <h3>14.3 Progress</h3>
+  <table>
+    <tr><th>Method</th><th>Path</th><th>Notes</th></tr>
+    <tr><td>GET</td><td><code>/api/v1/progress/overview</code></td><td>lessons_completed, speaking seconds, streak</td></tr>
+    <tr><td>POST</td><td><code>/api/v1/progress/sessions/end</code></td><td>Generic timed session close</td></tr>
+  </table>
+
+  <h3>14.4 AI chat / role play</h3>
+  <table>
+    <tr><th>Method</th><th>Path</th><th>Notes</th></tr>
+    <tr><td>POST</td><td><code>/api/ai/chat</code></td><td>Audio (+ optional <code>lesson_id</code>, <code>role_context</code>)</td></tr>
+    <tr><td>POST</td><td><code>/api/ai/speak</code></td><td>TTS for a text line (opening lines)</td></tr>
+  </table>
+
+  <h3>14.5 Users / profile</h3>
+  <table>
+    <tr><th>Method</th><th>Path</th><th>Notes</th></tr>
+    <tr><td>GET/PATCH</td><td><code>/api/v1/users/me/profile</code></td><td>Onboarding profile fields</td></tr>
+  </table>
+
+  <h2>15. Database &amp; Progress Model</h2>
+  <h3>15.1 Core tables (conceptual)</h3>
+  <ul>
+    <li><code>users</code> — accounts</li>
+    <li><code>courses</code> → <code>units</code> → <code>lessons</code> → <code>exercises</code></li>
+    <li><code>exercise_attempts</code> — each submit</li>
+    <li><code>lesson_progress</code> — exercise score / exercises_completed flags</li>
+    <li><code>user_progress</code> — path completion + AI talk time (unlock source of truth)</li>
+    <li><code>speaking_sessions</code> / <code>speaking_messages</code> — voice turns</li>
+    <li><code>learning_sessions</code> — timed practice blocks for streaks/stats</li>
+  </ul>
+  <h3>15.2 Unlock source of truth</h3>
+  <p>
+    Learning Path reads <code>UserProgress.is_completed</code> via <code>GET /api/v1/courses</code>.
+    Exercise-only completion updates <code>LessonProgress</code> but does <em>not</em> unlock the next node
+    until speaking ends successfully with exercises done.
+  </p>
+
+  <h2>16. AI Pipeline (Groq)</h2>
+  <ol>
+    <li><strong>STT:</strong> Whisper large-v3 transcription of uploaded audio</li>
+    <li><strong>Chat:</strong> JSON reply with <code>reply</code> + <code>grammar_correction</code></li>
+    <li><strong>Modes:</strong> tutor correction prompt (lessons) vs role-play character prompt</li>
+    <li><strong>TTS:</strong> Orpheus (optional; fails soft if unavailable)</li>
+    <li><strong>Audio format:</strong> client records AAC/M4A; backend sniffs magic bytes before Whisper</li>
+  </ol>
+  <div class="box warn">
+    <strong>Ops note:</strong> Keep <code>GROQ_API_KEY</code> in <code>backend/.env</code> only. Never commit secrets.
+    Accept TTS model terms in Groq console if voice playback is required.
+  </div>
+
+  <h2>17. Environment &amp; Local Setup</h2>
+  <h3>17.1 Backend</h3>
+  <pre>cd backend
+python -m venv venv && source venv/bin/activate
+pip install -r requirements.txt
+# configure backend/.env → DATABASE_URL, GROQ_API_KEY, JWT secret, etc.
+alembic upgrade head
+python scripts/seed_a1_unit1.py
+uvicorn app.main:app --reload --host 0.0.0.0 --port 8000</pre>
+
+  <h3>17.2 Mobile</h3>
+  <pre>cd mobile-app
+npm install
+# .env → EXPO_PUBLIC_API_URL=http://&lt;LAN-IP&gt;:8000
+npx expo start -c</pre>
+  <p>
+    On a physical phone, localhost is rewritten to the Expo LAN host automatically when
+    <code>EXPO_PUBLIC_API_URL</code> uses localhost.
+  </p>
+
+  <h3>17.3 Admin</h3>
+  <pre>cd admin-panel
+npm install
+npm run dev</pre>
+
+  <h2>18. Testing &amp; Quality</h2>
+  <ul>
+    <li>Backend: Pytest suites for auth, content, exercises/progress, speaking, AI chat (mocked Groq)</li>
+    <li>Mobile: TypeScript (<code>tsc --noEmit</code>)</li>
+    <li>Workspace rules: TypeScript everywhere on clients; async FastAPI; Axios on mobile; Tailwind + shadcn on admin</li>
+  </ul>
+
+  <h2>19. Known Flows &amp; Acceptance Criteria</h2>
+  <h3>19.1 Lesson unlock acceptance</h3>
+  <ol>
+    <li>Open Learning Path → only first incomplete lesson is tappable</li>
+    <li>Complete all Greetings exercises (tones play) → Speaking opens</li>
+    <li>Finish speaking → <strong>Back to unit</strong></li>
+    <li>Greetings shows completed (green); Introducing yourself becomes current (blue)</li>
+    <li>Repeat for Introducing yourself → unlocks Personal information</li>
+  </ol>
+  <h3>19.2 Role play acceptance</h3>
+  <ol>
+    <li>Open Role Plays → see 10 image cards</li>
+    <li>Start a scenario → timer centered above orb</li>
+    <li>Hold mic → partner replies in character</li>
+    <li>Exit available during chat and after finish</li>
+  </ol>
+  <h3>19.3 Branding acceptance</h3>
+  <ol>
+    <li>Native/loading splash is indigo with robot (not plain white name-only)</li>
+    <li>In-app splash shows Speakora robot + animated presence</li>
+    <li>Admin titles show SPEAKORA / Speakora Content Studio</li>
+  </ol>
+
+  <h2>20. Glossary</h2>
+  <table>
+    <tr><th>Term</th><th>Meaning</th></tr>
+    <tr><td>CEFR</td><td>Common European Framework of Reference (A1–C2)</td></tr>
+    <tr><td>LessonProgress</td><td>Exercise scoring state for a lesson</td></tr>
+    <tr><td>UserProgress</td><td>Path unlock / completion flag + talk time</td></tr>
+    <tr><td>Role Play</td><td>Timed two-person AI scenario conversation</td></tr>
+    <tr><td>Speaking session</td><td>Lesson voice practice block that can complete a lesson</td></tr>
+    <tr><td>STT / TTS</td><td>Speech-to-text / text-to-speech</td></tr>
+  </table>
+
+  <p class="footer-note">
+    Document generated for the Speakora monorepo (mobile-app · backend · admin-panel).
+    For deeper architecture history and multi-release roadmap, also see repository <code>README.md</code>.
+  </p>
+
+</body>
+</html>

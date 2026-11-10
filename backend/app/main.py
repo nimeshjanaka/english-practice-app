@@ -19,7 +19,7 @@ from app.api.v1.endpoints import users as users_v1
 from app.routers import ai_chat, auth, content, curriculum_admin, payments, users
 
 app = FastAPI(
-    title="English Development App API",
+    title="Speakora API",
     description="Backend for the Spoken English mobile app and Admin Panel.",
     version="0.1.0",
 )
@@ -60,7 +60,7 @@ app.include_router(speaking_v1.router, prefix="/api/v1/speaking", tags=["Speakin
 async def root() -> dict[str, str]:
     """Welcome / health check endpoint."""
     return {
-        "message": "Welcome to the English Development App API",
+        "message": "Welcome to the Speakora API",
         "status": "ok",
     }
 

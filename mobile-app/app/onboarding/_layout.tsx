@@ -1,7 +1,7 @@
 import { Stack } from "expo-router";
 
 /**
- * YayTalk onboarding stack — welcome → profile → goals → challenges → plan.
+ * Speakora onboarding stack — welcome → profile → goals → challenges → plan.
  */
 export default function OnboardingLayout() {
   return (

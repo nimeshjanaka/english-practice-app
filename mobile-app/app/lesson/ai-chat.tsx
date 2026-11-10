@@ -34,6 +34,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { AiSpeakOrb } from "../../src/components/AiSpeakOrb";
 import { LearningPathButton } from "../../src/components/LearningPathButton";
+import { SettingsButton } from "../../src/components/SettingsButton";
 import api, { axios } from "../../src/api";
 import {
   AI_CHAT_PATH,
@@ -786,9 +787,8 @@ export default function LessonAiChatScreen() {
         interruptionMode: "duckOthers",
       });
 
-      await audioRecorder.prepareToRecordAsync({
-        isMeteringEnabled: true,
-      });
+      // Full preset required — partial options drop .m4a / AAC and Groq rejects the file.
+      await audioRecorder.prepareToRecordAsync(RECORDING_OPTIONS);
       if (!holdingRef.current) {
         return;
       }
@@ -916,6 +916,7 @@ export default function LessonAiChatScreen() {
           title: "Talk with AI KIT",
           headerShown: true,
           headerLeft: () => <LearningPathButton labeled />,
+          headerRight: () => <SettingsButton />,
           headerBackVisible: false,
         }}
       />
@@ -1129,18 +1130,24 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "space-between",
     marginHorizontal: 16,
-    marginTop: 12,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
+    marginTop: 8,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    borderRadius: 14,
+    backgroundColor: "#DBEAFE",
+    borderWidth: 1,
+    borderColor: "#93C5FD",
+    zIndex: 5,
   },
   timerBarExpired: {
-    opacity: 0.95,
+    backgroundColor: "#FEE2E2",
+    borderColor: "#FCA5A5",
   },
   timerPill: {
     flexDirection: "row",
     alignItems: "center",
     gap: 8,
-    backgroundColor: "#E0F2FE",
+    backgroundColor: "#FFFFFF",
     borderRadius: 999,
     paddingHorizontal: 14,
     paddingVertical: 8,

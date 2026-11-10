@@ -14,6 +14,7 @@ import {
 import api from "../src/api";
 import { GoogleSignInButton } from "../src/components/GoogleSignInButton";
 import { AUTH } from "../src/constants/api";
+import { APP_NAME_PREFIX, APP_NAME_SUFFIX } from "../src/constants/brand";
 import { authErrorMessage, saveTokenAndEnterApp } from "../src/lib/authSession";
 
 /**
@@ -61,8 +62,8 @@ export default function LoginScreen() {
     >
       <View style={styles.card}>
         <Text style={styles.brand}>
-          <Text style={{ color: "#2563EB" }}>yay</Text>
-          <Text style={{ color: "#CA8A04" }}>talk</Text>
+          <Text style={{ color: "#2563EB" }}>{APP_NAME_PREFIX}</Text>
+          <Text style={{ color: "#CA8A04" }}>{APP_NAME_SUFFIX}</Text>
         </Text>
         <Text style={styles.heading}>Welcome back</Text>
         <Text style={styles.subheading}>Sign in to continue practicing</Text>

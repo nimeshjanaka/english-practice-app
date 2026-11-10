@@ -59,6 +59,24 @@ Respond ONLY with valid JSON (no markdown) with exactly:
 - "grammar_correction"
 """.strip()
 
+ROLEPLAY_SYSTEM_PROMPT = """
+You are in a spoken English ROLE PLAY with the learner.
+Stay fully in character as the partner described in the role context.
+Have a natural two-person conversation (you ↔ learner).
+
+Rules:
+1. Reply ONLY as your character, in 1-2 short spoken sentences (under 180 characters).
+2. Keep the scene moving with a natural question or next step.
+3. If the learner's English is weak or wrong, still stay in character, but weave a clearer
+   rephrase into your reply (e.g. "Sure — so you'd like a medium latte, right?").
+4. In "grammar_correction", add a short tip when useful; otherwise use "".
+5. Do not break character. Do not say you are an AI tutor.
+
+Respond ONLY with valid JSON (no markdown) with exactly:
+- "reply"
+- "grammar_correction"
+""".strip()
+
 
 def get_groq_client() -> Groq:
     """Build a Groq client from GROQ_API_KEY (env or settings)."""
@@ -71,16 +89,45 @@ def get_groq_client() -> Groq:
     return Groq(api_key=api_key)
 
 
+def _sniff_audio_filename(data: bytes, fallback_name: str) -> str:
+    """
+    Pick a Groq-safe filename from magic bytes.
+
+    Whisper keys off the extension; a wrong label (e.g. CAF bytes as .m4a) returns 400.
+    """
+    name = fallback_name or "speech.m4a"
+    stem = Path(name).stem or "speech"
+
+    if len(data) >= 12 and data.startswith(b"RIFF") and data[8:12] == b"WAVE":
+        return f"{stem}.wav"
+    if len(data) >= 12 and data[4:8] == b"ftyp":
+        return f"{stem}.m4a"
+    if data.startswith(b"OggS"):
+        return f"{stem}.ogg"
+    if data.startswith(b"\x1aE\xdf\xa3"):
+        return f"{stem}.webm"
+    if data.startswith(b"ID3") or (len(data) >= 2 and data[0] == 0xFF and data[1] & 0xE0 == 0xE0):
+        return f"{stem}.mp3"
+    if data.startswith(b"caff"):
+        # iOS Core Audio — not accepted by Groq; surface a clear error upstream.
+        raise ValueError(
+            "Unsupported iOS CAF recording. Re-record with AAC/M4A (restart the role play and try again)."
+        )
+    # Keep the original extension when we cannot sniff (already validated by the router).
+    return name
+
+
 def transcribe_audio(client: Groq, audio_path: Path) -> str:
     """Speech-to-text via Groq Whisper large-v3."""
-    with audio_path.open("rb") as audio_file:
-        result = client.audio.transcriptions.create(
-            file=(audio_path.name, audio_file.read()),
-            model=STT_MODEL,
-            language="en",
-            response_format="json",
-            temperature=0.0,
-        )
+    data = audio_path.read_bytes()
+    upload_name = _sniff_audio_filename(data, audio_path.name)
+    result = client.audio.transcriptions.create(
+        file=(upload_name, data),
+        model=STT_MODEL,
+        language="en",
+        response_format="json",
+        temperature=0.0,
+    )
     return (getattr(result, "text", None) or "").strip()
 
 
@@ -89,22 +136,27 @@ def generate_tutor_reply(
     learner_text: str,
     lesson_title: str | None = None,
     current_question: str | None = None,
+    role_context: str | None = None,
 ) -> dict[str, str]:
     """
-    Ask the Groq chat model for a correction-focused AI KIT reply as JSON.
+    Ask the Groq chat model for a tutor or role-play reply as JSON.
 
     Returns dict with keys: reply, grammar_correction.
     """
     parts: list[str] = []
-    if lesson_title:
+    role = (role_context or "").strip()
+    if role:
+        parts.append(f"Role context: {role}")
+    elif lesson_title:
         parts.append(f'Lesson context: "{lesson_title}".')
-    if current_question:
+    if current_question and not role:
         parts.append(f'AI KIT asked: "{current_question}".')
     parts.append(f"Learner said: {learner_text}")
     user_content = "\n".join(parts)
 
+    system_prompt = ROLEPLAY_SYSTEM_PROMPT if role else TUTOR_SYSTEM_PROMPT
     messages = [
-        {"role": "system", "content": TUTOR_SYSTEM_PROMPT},
+        {"role": "system", "content": system_prompt},
         {"role": "user", "content": user_content},
     ]
     last_error: Exception | None = None

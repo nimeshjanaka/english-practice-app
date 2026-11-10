@@ -68,7 +68,7 @@ export function Sidebar({ open, onNavigate }: { open: boolean; onNavigate: () =>
         )}
       >
         <div className="border-b border-white/10 px-5 py-6">
-          <p className="text-xs tracking-[0.2em] text-white/50">YAYTALK</p>
+          <p className="text-xs tracking-[0.2em] text-white/50">SPEAKORA</p>
           <h1 className="text-lg font-semibold">Content studio</h1>
         </div>
         <nav className="flex-1 overflow-auto py-3">

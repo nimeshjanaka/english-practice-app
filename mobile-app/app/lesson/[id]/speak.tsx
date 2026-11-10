@@ -7,7 +7,7 @@ import {
   type AudioPlayer,
 } from "expo-audio";
 import { LinearGradient } from "expo-linear-gradient";
-import { router, useLocalSearchParams } from "expo-router";
+import { useLocalSearchParams } from "expo-router";
 import { Mic, Sparkles } from "lucide-react-native";
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
@@ -33,7 +33,8 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import api, { axios } from "../../../src/api";
 import { LearningPathButton, goToLearningPath } from "../../../src/components/LearningPathButton";
-import { COURSES_PATH, getApiBaseUrl, speakingSessionEndPath } from "../../../src/constants/api";
+import { SettingsButton } from "../../../src/components/SettingsButton";
+import { getApiBaseUrl, speakingSessionEndPath } from "../../../src/constants/api";
 
 /** Speaking practice ends after 3 minutes. */
 const SESSION_SECONDS = 3 * 60;
@@ -50,18 +51,6 @@ type SpeakingReply = {
   ai_reply_text: string;
   grammar_correction: string;
   ai_audio_url: string;
-};
-
-type PathLesson = {
-  id: number;
-  title: string;
-  order_index: number;
-};
-
-type CoursePath = {
-  id: number;
-  order_index: number;
-  lessons: PathLesson[];
 };
 
 function audioFile(uri: string) {
@@ -98,20 +87,8 @@ function formatClock(totalSeconds: number): string {
   return `${minutes}:${seconds.toString().padStart(2, "0")}`;
 }
 
-async function findNextLessonId(currentLessonId: string): Promise<number | null> {
-  const response = await api.get<CoursePath[]>(COURSES_PATH);
-  const lessons = [...(response.data ?? [])]
-    .sort((a, b) => a.order_index - b.order_index || a.id - b.id)
-    .flatMap((course) =>
-      [...(course.lessons ?? [])].sort((a, b) => a.order_index - b.order_index || a.id - b.id),
-    );
-  const index = lessons.findIndex((lesson) => String(lesson.id) === String(currentLessonId));
-  if (index < 0) return null;
-  return lessons[index + 1]?.id ?? null;
-}
-
 /**
- * Lesson speaking practice — 3-minute timed session, then continue to the next lesson.
+ * Lesson speaking practice — 3-minute timed session, then return to the unit path.
  */
 export default function SpeakScreen() {
   const insets = useSafeAreaInsets();
@@ -131,22 +108,28 @@ export default function SpeakScreen() {
   const [sending, setSending] = useState(false);
   const [finished, setFinished] = useState(false);
   const [secondsLeft, setSecondsLeft] = useState(SESSION_SECONDS);
-  const [nextLessonId, setNextLessonId] = useState<number | null>(null);
-  const [nextLessonLoading, setNextLessonLoading] = useState(false);
+  const [lessonCompleted, setLessonCompleted] = useState(false);
+  const [finishing, setFinishing] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const pulse = useSharedValue(1);
   const ripple = useSharedValue(1);
   const rippleOpacity = useSharedValue(0);
 
-  const closeSession = useCallback(async () => {
+  const closeSession = useCallback(async (): Promise<boolean> => {
     const sessionId = sessionRef.current;
     sessionRef.current = null;
-    if (!sessionId) return;
+    if (!sessionId) return false;
     try {
-      await api.post(speakingSessionEndPath(sessionId), {});
+      const response = await api.post<{
+        session_id: string;
+        duration_seconds: number;
+        lesson_completed?: boolean;
+      }>(speakingSessionEndPath(sessionId), {});
+      return Boolean(response.data?.lesson_completed);
     } catch {
       // Best-effort progress write.
+      return false;
     }
   }, []);
 
@@ -172,7 +155,7 @@ export default function SpeakScreen() {
           : null;
       setReady(false);
       setStarting(false);
-      setError(detail || "Could not start a speaking session. Tap Retry or continue to the next lesson.");
+      setError(detail || "Could not start a speaking session. Tap Retry or return to your path.");
     }
   }, [lessonId]);
 
@@ -183,22 +166,16 @@ export default function SpeakScreen() {
     setRecording(false);
     setSending(false);
     setStarting(false);
+    setFinishing(true);
     try {
       if (recorder.isRecording) await recorder.stop();
     } catch {
       // ignore
     }
-    await closeSession();
-    setNextLessonLoading(true);
-    try {
-      const nextId = await findNextLessonId(lessonId);
-      setNextLessonId(nextId);
-    } catch {
-      setNextLessonId(null);
-    } finally {
-      setNextLessonLoading(false);
-    }
-  }, [closeSession, finished, lessonId, recorder]);
+    const unlocked = await closeSession();
+    setLessonCompleted(unlocked);
+    setFinishing(false);
+  }, [closeSession, finished, recorder]);
 
   useEffect(() => {
     endingRef.current = false;
@@ -396,11 +373,7 @@ export default function SpeakScreen() {
     }
   }
 
-  function goNext() {
-    if (nextLessonId) {
-      router.replace(`/lesson/${nextLessonId}/exercise`);
-      return;
-    }
+  function returnToUnit() {
     goToLearningPath();
   }
 
@@ -425,13 +398,16 @@ export default function SpeakScreen() {
         <LearningPathButton labeled />
         <View style={styles.navCenter}>
           <Text style={styles.navTitle}>Speaking</Text>
-          <Text style={styles.navSubtitle}>3-minute practice · then next lesson</Text>
+          <Text style={styles.navSubtitle}>3-minute practice · then back to unit</Text>
         </View>
-        <View style={[styles.timerPill, (timerExpired || finished) && styles.timerPillDone]}>
-          <Text style={[styles.timerText, (timerExpired || finished) && styles.timerTextDone]}>
-            {formatClock(secondsLeft)}
-          </Text>
-        </View>
+        <SettingsButton />
+      </View>
+
+      <View style={[styles.timerBar, (timerExpired || finished) && styles.timerBarDone]}>
+        <Text style={styles.timerBarLabel}>Time left</Text>
+        <Text style={[styles.timerBarValue, (timerExpired || finished) && styles.timerBarValueDone]}>
+          {formatClock(secondsLeft)}
+        </Text>
       </View>
 
       <ScrollView
@@ -447,8 +423,8 @@ export default function SpeakScreen() {
             </View>
             <Text style={styles.emptyTitle}>Practice out loud</Text>
             <Text style={styles.emptyBody}>
-              Hold the microphone and speak for up to 3 minutes. When time is up, continue to the
-              next lesson.
+              Hold the microphone and speak for up to 3 minutes. When you finish, you return to your
+              unit and the next lesson unlocks.
             </Text>
           </View>
         ) : null}
@@ -489,18 +465,19 @@ export default function SpeakScreen() {
 
         {finished ? (
           <View style={styles.doneCard}>
-            <Text style={styles.doneTitle}>Session complete</Text>
-            <Text style={styles.doneBody}>
-              Nice work. You can move to the next lesson now
-              {nextLessonId ? "" : ", or return to your learning path"}.
+            <Text style={styles.doneTitle}>
+              {lessonCompleted ? "Lesson complete" : "Speaking complete"}
             </Text>
-            {nextLessonLoading ? (
+            <Text style={styles.doneBody}>
+              {lessonCompleted
+                ? "Nice work. Return to your unit — the next lesson is unlocked."
+                : "Speaking finished. Finish every exercise in this lesson first if the next node is still locked."}
+            </Text>
+            {finishing ? (
               <ActivityIndicator color="#2563EB" style={{ marginTop: 12 }} />
             ) : (
-              <Pressable style={styles.nextBtn} onPress={goNext}>
-                <Text style={styles.nextBtnText}>
-                  {nextLessonId ? "Next lesson" : "Back to learning path"}
-                </Text>
+              <Pressable style={styles.nextBtn} onPress={returnToUnit}>
+                <Text style={styles.nextBtnText}>Back to unit</Text>
               </Pressable>
             )}
           </View>
@@ -571,22 +548,41 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     paddingHorizontal: 12,
-    paddingBottom: 10,
+    paddingBottom: 8,
   },
   navCenter: { flex: 1, alignItems: "center", paddingHorizontal: 6 },
   navTitle: { fontSize: 18, fontWeight: "800", color: "#0F172A" },
   navSubtitle: { marginTop: 2, fontSize: 12, fontWeight: "600", color: "#64748B" },
-  timerPill: {
-    minWidth: 58,
-    paddingHorizontal: 10,
-    paddingVertical: 8,
-    borderRadius: 999,
+  timerBar: {
+    marginHorizontal: 16,
+    marginBottom: 8,
+    borderRadius: 14,
     backgroundColor: "#DBEAFE",
+    borderWidth: 1,
+    borderColor: "#93C5FD",
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    flexDirection: "row",
     alignItems: "center",
+    justifyContent: "space-between",
+    zIndex: 5,
   },
-  timerPillDone: { backgroundColor: "#DCFCE7" },
-  timerText: { fontSize: 14, fontWeight: "800", color: "#1D4ED8" },
-  timerTextDone: { color: "#15803D" },
+  timerBarDone: {
+    backgroundColor: "#DCFCE7",
+    borderColor: "#86EFAC",
+  },
+  timerBarLabel: {
+    fontSize: 13,
+    fontWeight: "700",
+    color: "#1E40AF",
+  },
+  timerBarValue: {
+    fontSize: 22,
+    fontWeight: "800",
+    color: "#1D4ED8",
+    fontVariant: ["tabular-nums"],
+  },
+  timerBarValueDone: { color: "#15803D" },
   thread: { flex: 1 },
   threadContent: {
     paddingHorizontal: 16,

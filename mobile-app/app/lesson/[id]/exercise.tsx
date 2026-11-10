@@ -14,7 +14,13 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import api, { axios } from "../../../src/api";
 import { LearningPathButton } from "../../../src/components/LearningPathButton";
+import { SettingsButton } from "../../../src/components/SettingsButton";
 import { exerciseAttemptPath, lessonExercisesPath } from "../../../src/constants/api";
+import {
+  playCorrectTone,
+  playIncorrectTone,
+  preloadFeedbackTones,
+} from "../../../src/lib/feedbackTones";
 
 const MAX_TRIES = 3;
 
@@ -111,6 +117,10 @@ export default function ExercisePlayerScreen() {
   const usesSingleMatch = kind === "matching" && pairRows.length === 0;
   const triesLeft = Math.max(0, MAX_TRIES - triesUsed);
 
+  useEffect(() => {
+    preloadFeedbackTones();
+  }, []);
+
   const resetAnswer = useCallback((next: Exercise | undefined) => {
     setChoice(null);
     setBlank("");
@@ -200,12 +210,14 @@ export default function ExercisePlayerScreen() {
       const data = response.data;
 
       if (data.is_correct) {
+        playCorrectTone();
         setFeedback(data);
         setResolved(true);
         setRevealed(false);
         return;
       }
 
+      playIncorrectTone();
       const nextTries = triesUsed + 1;
       setTriesUsed(nextTries);
       if (selectedForMark) {
@@ -283,8 +295,13 @@ export default function ExercisePlayerScreen() {
     <View style={[styles.screen, { paddingTop: insets.top, paddingBottom: Math.max(insets.bottom, 12) }]}>
       <View style={styles.nav}>
         <LearningPathButton labeled />
-        <Text style={styles.navTitle}>Exercise</Text>
-        <Text style={styles.count}>{exercises.length ? `${index + 1}/${exercises.length}` : ""}</Text>
+        <View style={styles.navCenter}>
+          <Text style={styles.navTitle}>Exercise</Text>
+          <Text style={styles.count}>
+            {exercises.length ? `${index + 1}/${exercises.length}` : ""}
+          </Text>
+        </View>
+        <SettingsButton />
       </View>
 
       {loading ? <ActivityIndicator color="#3B82F6" style={styles.loader} /> : null}
@@ -496,8 +513,9 @@ export default function ExercisePlayerScreen() {
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: "#F8FAFC" },
   nav: { height: 52, flexDirection: "row", alignItems: "center", paddingHorizontal: 16, gap: 8 },
-  navTitle: { flex: 1, textAlign: "center", fontSize: 17, fontWeight: "800", color: "#0F172A" },
-  count: { minWidth: 40, textAlign: "right", color: "#94A3B8", fontWeight: "700" },
+  navCenter: { flex: 1, alignItems: "center" },
+  navTitle: { fontSize: 17, fontWeight: "800", color: "#0F172A" },
+  count: { marginTop: 2, color: "#94A3B8", fontWeight: "700", fontSize: 12 },
   loader: { marginTop: 24 },
   error: { color: "#DC2626", marginHorizontal: 20, marginTop: 8 },
   empty: { margin: 24, textAlign: "center", color: "#64748B" },

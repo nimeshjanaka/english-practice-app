@@ -20,7 +20,7 @@ type OnboardingChromeProps = {
 };
 
 /**
- * Shared header matching YayTalk mocks:
+ * Shared header matching Speakora mocks:
  * circular back, section label, segmented progress with check nodes.
  */
 export function OnboardingChrome({

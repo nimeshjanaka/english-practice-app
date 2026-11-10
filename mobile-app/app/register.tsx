@@ -74,7 +74,7 @@ export default function RegisterScreen() {
         keyboardShouldPersistTaps="handled"
       >
         <View style={styles.card}>
-          <Text style={styles.brand}>English Development</Text>
+          <Text style={styles.brand}>Speakora</Text>
           <Text style={styles.heading}>Create account</Text>
           <Text style={styles.subheading}>Sign up to start your learning path</Text>
 

@@ -44,7 +44,7 @@ export default function LoginPage() {
   return (
     <div className="grid min-h-screen place-items-center bg-ink px-4">
       <form onSubmit={onSubmit} className="w-full max-w-md rounded-2xl bg-white p-8 shadow-xl rise">
-        <p className="text-xs tracking-[0.2em] text-brand">YAYTALK</p>
+        <p className="text-xs tracking-[0.2em] text-brand">SPEAKORA</p>
         <h1 className="mt-2 text-2xl font-semibold">Content studio</h1>
         <p className="mt-1 text-sm text-slate-500">Admin sign-in. Student accounts stay out of the studio.</p>
         <label className="mt-6 block text-sm font-medium" htmlFor="email">

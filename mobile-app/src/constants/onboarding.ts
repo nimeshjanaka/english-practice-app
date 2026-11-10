@@ -1,7 +1,7 @@
 /** AsyncStorage — first-run welcome completed (or skipped via Log In). */
 export const ONBOARDING_SEEN_KEY = "onboarding_seen";
 
-/** AsyncStorage — YayTalk onboarding profile draft (JSON). */
+/** AsyncStorage — Speakora onboarding profile draft (JSON). */
 export const ONBOARDING_PROFILE_KEY = "onboarding_profile";
 
 export type OnboardingProfile = {
@@ -263,7 +263,7 @@ export const GOAL_TIMELINES = [
 
 export const DAILY_MINUTES = [5, 10, 15, 20, 30, 60] as const;
 
-/** YayTalk visual system — tuned to onboarding mockups. */
+/** Speakora visual system — tuned to onboarding mockups. */
 export const BRAND = {
   blue: "#5568D7",
   blueDeep: "#3F51C8",

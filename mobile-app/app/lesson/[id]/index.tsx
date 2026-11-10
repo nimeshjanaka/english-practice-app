@@ -12,7 +12,8 @@ import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { DragMatchExercise } from "../../../src/components/DragMatchExercise";
-import { LearningPathButton, LearningPathButtonSpacer } from "../../../src/components/LearningPathButton";
+import { LearningPathButton } from "../../../src/components/LearningPathButton";
+import { SettingsButton } from "../../../src/components/SettingsButton";
 import api, { axios } from "../../../src/api";
 import { lessonExercisesPath } from "../../../src/constants/api";
 
@@ -176,7 +177,7 @@ export default function LessonExerciseScreen() {
         <View style={styles.nav}>
           <LearningPathButton labeled />
           <Text style={styles.navTitle}>Practice</Text>
-          <LearningPathButtonSpacer />
+          <SettingsButton />
         </View>
 
         {error ? <Text style={styles.error}>{error}</Text> : null}

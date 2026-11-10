@@ -2,7 +2,7 @@ import type { ReactNode } from "react";
 import "./globals.css";
 
 export const metadata = {
-  title: "YayTalk Content Studio",
+  title: "Speakora Content Studio",
   description: "English curriculum content management",
 };
 
