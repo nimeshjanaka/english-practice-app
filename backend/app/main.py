@@ -4,9 +4,11 @@ FastAPI application entrypoint for the Spoken English backend.
 
 from pathlib import Path
 
-from fastapi import FastAPI
+from fastapi import Depends, FastAPI, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
+from sqlalchemy import text
+from sqlalchemy.orm import Session
 
 from app.api.v1.endpoints import admin as admin_v1
 from app.api.v1.endpoints import admin_lessons as admin_lessons_v1
@@ -16,6 +18,7 @@ from app.api.v1.endpoints import exercises as exercises_v1
 from app.api.v1.endpoints import progress as progress_v1
 from app.api.v1.endpoints import speaking as speaking_v1
 from app.api.v1.endpoints import users as users_v1
+from app.database import get_db
 from app.routers import ai_chat, auth, content, curriculum_admin, payments, users
 
 app = FastAPI(
@@ -63,6 +66,23 @@ async def root() -> dict[str, str]:
         "message": "Welcome to the Speakora API",
         "status": "ok",
     }
+
+
+@app.get("/healthz", tags=["Health"])
+def healthz(db: Session = Depends(get_db)) -> dict[str, str]:
+    """
+    Unauthenticated liveness probe for Render.
+
+    Runs SELECT 1 so the check fails if PostgreSQL is unreachable.
+    """
+    try:
+        db.execute(text("SELECT 1"))
+    except Exception as exc:  # noqa: BLE001 — surface any DB connectivity failure
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="database unavailable",
+        ) from exc
+    return {"status": "ok"}
 
 
 @app.get("/json/version", tags=["Health"], include_in_schema=False)

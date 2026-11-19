@@ -1,0 +1,2 @@
+# Moved: Render Blueprints must live at the repository root.
+# See ../render.yaml (rootDir: backend).
